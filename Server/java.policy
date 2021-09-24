@@ -1,0 +1,3 @@
+grant codebase "file:/home/2019/wmadih/Projects/COMP512/TravelReservation/Server/" {
+permission java.security.AllPermission;
+};
