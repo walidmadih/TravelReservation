@@ -30,7 +30,9 @@ public class RMIMiddleware implements IResourceManager{
         try {
             // Create a new Server object
             RMIMiddleware server = new RMIMiddleware();
-            server.connectResources(host1,host2,host3);
+            server.connectResources(host1,"Flights");
+            server.connectResources(host1,"Cars");
+            server.connectResources(host1,"Rooms");
             // Dynamically generate the stub (client proxy)
             IResourceManager middleware = (IResourceManager) UnicastRemoteObject.exportObject(server, 0);
 
@@ -65,16 +67,34 @@ public class RMIMiddleware implements IResourceManager{
         }
     }
 
-    public void connectResources(String host1,String host2,String host3){
+    public void connectResources(String host,String name){
+        int port = 2034;
+        String s_rmiPrefix = "group_34_";
         try{
-            int port = 2034;
-            String s_rmiPrefix = "group_34_";
-            Registry rFlights = LocateRegistry.getRegistry(host1,port);
-            Registry rCars = LocateRegistry.getRegistry(host2,port);
-            Registry rRooms = LocateRegistry.getRegistry(host3,port);
-            manager_Flights = (IResourceManager) rFlights.lookup(s_rmiPrefix+"Flights");
-            manager_Cars = (IResourceManager) rCars.lookup(s_rmiPrefix+"Cars");
-            manager_Rooms = (IResourceManager) rRooms.lookup(s_rmiPrefix+"Rooms");
+            boolean first = true;
+            while(true) {
+                try{
+                    Registry registry = LocateRegistry.getRegistry(host, port);
+                    if(name.equals("Flights")) {
+                        manager_Flights = (IResourceManager) registry.lookup(s_rmiPrefix + name);
+                    }
+                    else if(name.equals("Cars")){
+                        manager_Cars = (IResourceManager) registry.lookup(s_rmiPrefix + name);
+                    }
+                    else{
+                        manager_Rooms = (IResourceManager) registry.lookup(s_rmiPrefix + name);
+                    }
+                    System.out.println("Connected to '" + name + "' server [" + host + ":" + port + "/" + s_rmiPrefix + name + "]");
+                    break;
+                }
+                catch (NotBoundException|RemoteException e) {
+                    if (first) {
+                        System.out.println("Waiting for '" + name + "' server [" + host + ":" + port + "/" + s_rmiPrefix + name + "]");
+                        first = false;
+                    }
+                }
+                Thread.sleep(500);
+            }
         }
         catch(Exception e){
             System.err.println((char)27 + "[31;1mServer exception: " + (char)27 + "[0mUncaught exception");
