@@ -1,4 +1,4 @@
-package Client;
+package Server.Interface;
 
 import java.io.Serializable;
 import java.util.Vector;
@@ -23,3 +23,4 @@ public class RemoteMethod implements Serializable {
         return sb.toString();
     }
 }
+

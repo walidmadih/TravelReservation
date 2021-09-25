@@ -1,5 +1,4 @@
-package Common;
-
+package Server.Interface;
 public enum Command {
     Help("List all available commands", "[CommandName]"),
 
@@ -70,3 +69,4 @@ public enum Command {
         return ret;
     }
 }
+

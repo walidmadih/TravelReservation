@@ -1,7 +1,5 @@
 package Client;
 
-import Server.Interface.*;
-
 import java.net.Socket;
 import java.util.*;
 import java.io.*;
@@ -9,9 +7,10 @@ import java.rmi.ConnectException;
 import java.rmi.ServerException;
 import java.rmi.UnmarshalException;
 
+import Server.Interface.*;
+
 public abstract class Client
 {
-	IResourceManager m_resourceManager = null;
 	Socket clientSocket;
 	ObjectOutputStream objectOutputStream;
 	ObjectInputStream objectInputStream;
