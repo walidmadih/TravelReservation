@@ -1,4 +1,4 @@
-all: java.policy compile-server-interface compile-server-common compile-server-middleware
+all: java.policy compile-server-interface compile-server-middleware
 
 java.policy: FORCE
 	@echo "Creating server java policy"
@@ -16,11 +16,8 @@ Interface.jar: Server/Interface/*.java
 compile-server-interface: Server/Interface/*.java
 	javac Server/Interface/*.java
 
-compile-server-common: Server/Common/*.java
-	javac Server/Common/*.java
-
 compile-server-middleware: Server/Middleware/*.java
-	javac Server/Middleware/*.java
+	javac Server/Middleware/*.java Server/Interface/*.java Server/Common/*.java
 
 clean:
 	rm -f Server/Interface/*.class Server/Common/*.class Server/Middleware/*.class
