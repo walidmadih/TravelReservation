@@ -1,6 +1,8 @@
 package Server.Interface;
+
 public enum Command {
     Help("List all available commands", "[CommandName]"),
+    Test("Ping Server", ""),
 
     AddFlight("Add a new flight number", "<xid>,<FlightNumber>,<NumberOfSeats>,<PricePerSeat>"),
     AddCars("Add a new car location", "<xid>,<Location>,<NumberOfCar>,<Price>"),

@@ -64,8 +64,6 @@ public class TCPServer {
         private Serializable executeRemoteMethod(Object o){
             if (o instanceof RemoteMethod) {
                 System.out.println("It is a RemoteMethod object");
-                RemoteMethod remoteMethod = (RemoteMethod) o;
-                System.out.println(remoteMethod.toString());
                 return true;
             }
             System.out.println("ERROR object is not a RemoteMethod object");

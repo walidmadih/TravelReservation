@@ -1,6 +1,7 @@
 package Client;
 
 import java.net.Socket;
+import java.rmi.Remote;
 import java.util.*;
 import java.io.*;
 import java.rmi.ConnectException;
@@ -85,6 +86,13 @@ public abstract class Client
 					System.err.println((char)27 + "[31;1mCommand exception: " + (char)27 + "[0mImproper use of help command. Location \"help\" or \"help,<CommandName>\"");
 				}
 				break;
+			}
+			case Test:
+			{
+				System.out.printf("Testing");
+				objectOutputStream.writeObject(remoteMethod);
+				objectOutputStream.flush();
+				System.out.println("[Not Implemented Test Result]");
 			}
 			case AddFlight: {
 				checkArgumentsCount(5, arguments.size());

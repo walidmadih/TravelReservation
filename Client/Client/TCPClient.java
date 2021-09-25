@@ -3,7 +3,6 @@ package Client;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
-import java.rmi.ConnectException;
 
 public class TCPClient extends Client {
 
