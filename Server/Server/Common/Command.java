@@ -1,4 +1,4 @@
-package Server.Common;
+package Common;
 
 public enum Command {
     Help("List all available commands", "[CommandName]"),
@@ -40,9 +40,9 @@ public enum Command {
         m_args = p_args;
     }
 
-    public static Client.Command fromString(String string)
+    public static Command fromString(String string)
     {
-        for (Client.Command cmd : Client.Command.values())
+        for (Command cmd : Command.values())
         {
             if (cmd.name().equalsIgnoreCase(string))
             {
@@ -55,7 +55,7 @@ public enum Command {
     public static String description()
     {
         String ret = "Commands supported by the client:\n";
-        for (Client.Command cmd : Client.Command.values())
+        for (Command cmd : Command.values())
         {
             ret += "\t" + cmd.name() + "\n";
         }

@@ -4,10 +4,10 @@ import java.io.Serializable;
 import java.util.Vector;
 
 public class RemoteMethod implements Serializable {
-    private Command command;
+    private Common.Command command;
     private Vector<String> arguments;
 
-    public RemoteMethod(Command pCommand, Vector<String> pArguments){
+    public RemoteMethod(Common.Command pCommand, Vector<String> pArguments){
         command = pCommand;
         arguments = pArguments;
     }
