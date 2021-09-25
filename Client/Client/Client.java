@@ -105,6 +105,7 @@ public abstract class Client
 				objectOutputStream.flush();
 				System.out.println("Flight added");
 			}
+			/*
 			case AddCars: {
 				checkArgumentsCount(5, arguments.size());
 
@@ -415,6 +416,7 @@ public abstract class Client
 				}
 				break;
 			}
+			*/
 			case Quit:
 				checkArgumentsCount(1, arguments.size());
 
