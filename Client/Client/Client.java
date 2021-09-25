@@ -100,13 +100,7 @@ public abstract class Client
 
 				ObjectOutputStream objectOutputStream = new ObjectOutputStream(clientSocket.getOutputStream());
 				objectOutputStream.writeObject(remoteMethod);
-
-				if (m_resourceManager.addFlight(id, flightNum, flightSeats, flightPrice)) {
-					System.out.println("Flight added");
-				} else {
-					System.out.println("Flight could not be added");
-				}
-				break;
+				System.out.println("Flight added");
 			}
 			case AddCars: {
 				checkArgumentsCount(5, arguments.size());
