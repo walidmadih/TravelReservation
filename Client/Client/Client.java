@@ -2,9 +2,9 @@ package Client;
 
 import Server.Interface.*;
 
+import java.net.Socket;
 import java.util.*;
 import java.io.*;
-import java.rmi.RemoteException;
 import java.rmi.ConnectException;
 import java.rmi.ServerException;
 import java.rmi.UnmarshalException;
@@ -12,6 +12,7 @@ import java.rmi.UnmarshalException;
 public abstract class Client
 {
 	IResourceManager m_resourceManager = null;
+	Socket clientSocket;
 
 	public Client()
 	{
@@ -67,8 +68,9 @@ public abstract class Client
 		}
 	}
 
-	public void execute(Command cmd, Vector<String> arguments) throws RemoteException, NumberFormatException
+	public void execute(Command cmd, Vector<String> arguments) throws IOException, NumberFormatException
 	{
+		RemoteMethod remoteMethod = new RemoteMethod(cmd, arguments);
 		switch (cmd)
 		{
 			case Help:
@@ -95,6 +97,9 @@ public abstract class Client
 				int flightNum = toInt(arguments.elementAt(2));
 				int flightSeats = toInt(arguments.elementAt(3));
 				int flightPrice = toInt(arguments.elementAt(4));
+
+				ObjectOutputStream objectOutputStream = new ObjectOutputStream(clientSocket.getOutputStream());
+				objectOutputStream.writeObject(remoteMethod);
 
 				if (m_resourceManager.addFlight(id, flightNum, flightSeats, flightPrice)) {
 					System.out.println("Flight added");
