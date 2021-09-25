@@ -6,7 +6,7 @@ import java.rmi.ConnectException;
 public class TCPClient extends Client {
 
     private static String s_serverHost = "localhost";
-    private static int s_serverPort = 1099;
+    private static int s_serverPort = 5163;
     private static String s_serverName = "Server";
 
 
