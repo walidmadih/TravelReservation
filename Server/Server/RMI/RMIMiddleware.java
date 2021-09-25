@@ -31,8 +31,8 @@ public class RMIMiddleware implements IResourceManager{
             // Create a new Server object
             RMIMiddleware server = new RMIMiddleware();
             server.connectResources(host1,"Flights");
-            server.connectResources(host1,"Cars");
-            server.connectResources(host1,"Rooms");
+            server.connectResources(host2,"Cars");
+            server.connectResources(host3,"Rooms");
             // Dynamically generate the stub (client proxy)
             IResourceManager middleware = (IResourceManager) UnicastRemoteObject.exportObject(server, 0);
 
