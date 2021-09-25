@@ -49,11 +49,11 @@ public class TCPClient extends Client {
             while (true) {
                 try {
                     clientSocket = new Socket(s_serverHost, s_serverPort);
-                     objectOutputStream = new ObjectOutputStream(clientSocket.getOutputStream());
-                     objectInputStream = new ObjectInputStream(clientSocket.getInputStream());
+                    objectOutputStream = new ObjectOutputStream(clientSocket.getOutputStream());
+                    objectInputStream = new ObjectInputStream(clientSocket.getInputStream());
                     System.out.println("Connected to '" + name + "' TCP server [" + server + ":" + port + "/" + name + "]");
                     break;
-                } catch (ConnectException e) {
+                } catch (Exception e) {
                     if (first) {
                         System.out.println("Waiting for '" + name + "' TCP server [" + server + ":" + port + "/" + name + "]");
                         first = false;
