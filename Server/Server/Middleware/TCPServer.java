@@ -1,6 +1,6 @@
 package Server.Middleware;
 
-import Client.RemoteMethod;
+import Server.Common.RemoteMethod;
 
 import java.io.*;
 import java.net.ServerSocket;
