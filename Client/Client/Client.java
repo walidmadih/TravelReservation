@@ -13,6 +13,8 @@ public abstract class Client
 {
 	IResourceManager m_resourceManager = null;
 	Socket clientSocket;
+	ObjectOutputStream objectOutputStream;
+	ObjectInputStream objectInputStream;
 
 	public Client()
 	{
@@ -98,7 +100,7 @@ public abstract class Client
 				int flightSeats = toInt(arguments.elementAt(3));
 				int flightPrice = toInt(arguments.elementAt(4));
 
-				ObjectOutputStream objectOutputStream = new ObjectOutputStream(clientSocket.getOutputStream());
+
 				objectOutputStream.writeObject(remoteMethod);
 				System.out.println("Flight added");
 			}

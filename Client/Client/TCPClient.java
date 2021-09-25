@@ -1,5 +1,7 @@
 package Client;
 
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.rmi.ConnectException;
 
@@ -47,6 +49,8 @@ public class TCPClient extends Client {
             while (true) {
                 try {
                     clientSocket = new Socket(s_serverHost, s_serverPort);
+                     objectOutputStream = new ObjectOutputStream(clientSocket.getOutputStream());
+                     objectInputStream = new ObjectInputStream(clientSocket.getInputStream());
                     System.out.println("Connected to '" + name + "' TCP server [" + server + ":" + port + "/" + name + "]");
                     break;
                 } catch (ConnectException e) {
