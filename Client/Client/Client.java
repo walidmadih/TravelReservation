@@ -102,6 +102,7 @@ public abstract class Client
 
 
 				objectOutputStream.writeObject(remoteMethod);
+				objectOutputStream.flush();
 				System.out.println("Flight added");
 			}
 			case AddCars: {
