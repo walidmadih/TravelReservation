@@ -1,12 +1,8 @@
 package Client;
 
 import java.net.Socket;
-import java.rmi.Remote;
 import java.util.*;
 import java.io.*;
-import java.rmi.ConnectException;
-import java.rmi.ServerException;
-import java.rmi.UnmarshalException;
 
 import Server.Interface.*;
 
@@ -49,19 +45,10 @@ public abstract class Client
 			try {
 				arguments = parse(command);
 				Command cmd = Command.fromString((String)arguments.elementAt(0));
-				try {
-					execute(cmd, arguments);
-				}
-				catch (ConnectException e) {
-					connectServer();
-					execute(cmd, arguments);
-				}
+				execute(cmd, arguments);
 			}
-			catch (IllegalArgumentException|ServerException e) {
+			catch (IllegalArgumentException e) {
 				System.err.println((char)27 + "[31;1mCommand exception: " + (char)27 + "[0m" + e.getLocalizedMessage());
-			}
-			catch (ConnectException|UnmarshalException e) {
-				System.err.println((char)27 + "[31;1mCommand exception: " + (char)27 + "[0mConnection to server lost");
 			}
 			catch (Exception e) {
 				System.err.println((char)27 + "[31;1mCommand exception: " + (char)27 + "[0mUncaught exception");
