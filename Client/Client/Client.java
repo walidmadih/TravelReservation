@@ -44,11 +44,12 @@ public abstract class Client
 			}
 
 			try {
+				System.out.println(objectInputStream.readObject().toString());
 				arguments = parse(command);
 				Command cmd = Command.fromString((String)arguments.elementAt(0));
 				execute(cmd, arguments);
 				objectOutputStream.flush();
-				System.out.println(objectInputStream.readObject().toString());
+
 			}
 			catch (IllegalArgumentException e) {
 				System.err.println((char)27 + "[31;1mCommand exception: " + (char)27 + "[0m" + e.getLocalizedMessage());
