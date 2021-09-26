@@ -47,6 +47,9 @@ public abstract class Client
 				arguments = parse(command);
 				Command cmd = Command.fromString((String)arguments.elementAt(0));
 				execute(cmd, arguments);
+				objectOutputStream.flush();
+				objectInputStream.wait();
+				System.out.println(objectInputStream.readObject().toString());
 			}
 			catch (IllegalArgumentException e) {
 				System.err.println((char)27 + "[31;1mCommand exception: " + (char)27 + "[0m" + e.getLocalizedMessage());
@@ -77,14 +80,8 @@ public abstract class Client
 			}
 			case Test:
 			{
-				try {
-					System.out.printf("Testing");
-					objectOutputStream.writeObject(remoteMethod);
-					objectOutputStream.flush();
-					System.out.println("[Not Implemented Test Result]");
-				}catch (Exception e){
-					break;
-				}
+				System.out.printf("Testing");
+				objectOutputStream.writeObject(remoteMethod);
 			}
 			case AddFlight: {
 				checkArgumentsCount(5, arguments.size());
