@@ -1,4 +1,4 @@
-all: java.policy compile-server-interface compile-server-middleware
+all: java.policy compile-server-middleware
 
 java.policy: FORCE
 	@echo "Creating server java policy"
@@ -9,14 +9,11 @@ java.policy: FORCE
 FORCE: ;
 
 Interface.jar: Server/Interface/*.java
-	@echo "Compiling TCP server interface"
+	@echo "Compiling TCP Interface"
 	javac Server/Interface/*.java
 	jar cvf Interface.jar Server/Interface/*.class
 
-compile-server-interface: Server/Interface/*.java
-	javac Server/Interface/*.java
-
-compile-server-middleware: Server/Middleware/*.java
+compile-server-middleware: Interface.jar Server/Middleware/*.java Server/Common/*.java
 	javac Server/Middleware/*.java Server/Interface/*.java Server/Common/*.java
 
 clean:
