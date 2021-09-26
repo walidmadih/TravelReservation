@@ -3,6 +3,7 @@ package Client;
 import java.net.Socket;
 import java.util.*;
 import java.io.*;
+import java.util.concurrent.ExecutionException;
 
 import Server.Interface.*;
 
@@ -76,10 +77,14 @@ public abstract class Client
 			}
 			case Test:
 			{
-				System.out.printf("Testing");
-				objectOutputStream.writeObject(remoteMethod);
-				objectOutputStream.flush();
-				System.out.println("[Not Implemented Test Result]");
+				try {
+					System.out.printf("Testing");
+					objectOutputStream.writeObject(remoteMethod);
+					objectOutputStream.flush();
+					System.out.println("[Not Implemented Test Result]");
+				}catch (Exception e){
+					break;
+				}
 			}
 			case AddFlight: {
 				checkArgumentsCount(5, arguments.size());
