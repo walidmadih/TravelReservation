@@ -12,11 +12,35 @@ import java.util.*;
 import java.io.*;
 
 public class ResourceManager extends TCPServer {
-    protected String m_name = "";
-    protected RMHashMap m_data = new RMHashMap();
+    private static String m_name = "";
+    private static RMHashMap m_data = new RMHashMap();
+    private static int port = 5163;
 
     public ResourceManager(String p_name) {
         m_name = p_name;
+    }
+
+    public static void main(String args[]) {
+        if (!(args.length == 1)) {
+            throw new IllegalArgumentException("Invalid Argument Count");
+        }
+
+        m_name = args[0];
+
+        // Create the RMI server entry
+        try {
+            ResourceManager resourceManager = new ResourceManager(m_name);
+            resourceManager.start(port);
+        } catch (Exception e) {
+            System.err.println((char) 27 + "[31;1mServer exception: " + (char) 27 + "[0mUncaught exception");
+            e.printStackTrace();
+            System.exit(1);
+        }
+
+        // Create and install a security manager
+        if (System.getSecurityManager() == null) {
+            System.setSecurityManager(new SecurityManager());
+        }
     }
 
     // Reads a data item
