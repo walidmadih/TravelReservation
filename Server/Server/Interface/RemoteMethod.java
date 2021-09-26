@@ -12,6 +12,14 @@ public class RemoteMethod implements Serializable {
         arguments = pArguments;
     }
 
+    public Command getCommand() {
+        return command;
+    }
+
+    public Vector<String> getArguments() {
+        return arguments;
+    }
+
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
