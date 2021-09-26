@@ -48,7 +48,6 @@ public abstract class Client
 				Command cmd = Command.fromString((String)arguments.elementAt(0));
 				execute(cmd, arguments);
 				objectOutputStream.flush();
-				objectInputStream.wait();
 				System.out.println(objectInputStream.readObject().toString());
 			}
 			catch (IllegalArgumentException e) {
