@@ -82,6 +82,7 @@ public abstract class Client
 			{
 				System.out.printf("Testing");
 				objectOutputStream.writeObject(remoteMethod);
+				break;
 			}
 			case AddFlight: {
 				checkArgumentsCount(5, arguments.size());
@@ -100,6 +101,7 @@ public abstract class Client
 				objectOutputStream.writeObject(remoteMethod);
 				objectOutputStream.flush();
 				System.out.println("Flight added");
+				break;
 			}
 			/*
 			case AddCars: {
