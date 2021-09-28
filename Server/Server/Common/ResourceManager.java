@@ -368,11 +368,6 @@ public class ResourceManager extends TCPServer {
         return reserveItem(xid, Room.getKey(location), location);
     }
 
-    // Reserve bundle
-    public boolean bundle(int xid, int customerId, Vector<String> flightNumbers, String location, boolean car, boolean room) {
-        return false;
-    }
-
     // Parse data
     @Override
     public Serializable addFlight(Command cmd, Vector<String> arguments) {
@@ -585,22 +580,7 @@ public class ResourceManager extends TCPServer {
 
     @Override
     public Serializable bundle(Command cmd, Vector<String> arguments) {
-            if (arguments.size() < 7) {
-                return new IllegalArgumentException("Invalid number of arguments.");
-            }
-
-            int id = toInt(arguments.elementAt(1));
-            int customerID = toInt(arguments.elementAt(2));
-            Vector<String> flightNumbers = new Vector<String>();
-            for (int i = 0; i < arguments.size() - 6; ++i)
-            {
-                flightNumbers.addElement(arguments.elementAt(3+i));
-            }
-            String location = arguments.elementAt(arguments.size()-3);
-            boolean car = toBoolean(arguments.elementAt(arguments.size()-2));
-            boolean room = toBoolean(arguments.elementAt(arguments.size()-1));
-
-            return bundle(id, customerID, flightNumbers, location, car, room);
+        return null;
     }
 
     public String getName() {

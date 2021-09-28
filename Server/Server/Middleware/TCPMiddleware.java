@@ -98,6 +98,7 @@ public class TCPMiddleware extends TCPServer {
 
         if (reservedItems != null) {
 
+            // Cancel the reservation for each of the customer's items on their respective server
             for (ReservedItem item : reservedItems) {
 
                 Command cmd2 = Command.fromString("cancelItem");
@@ -107,6 +108,7 @@ public class TCPMiddleware extends TCPServer {
                 args2.add(item.getKey());
                 args2.add(String.valueOf(item.getCount()));
     
+                //The item key always starts with either flight, room or car, so we can use the first character of the key to identify the item's type
                 char itemType = item.getKey().charAt(0);
     
                 switch (itemType) {
@@ -177,11 +179,10 @@ public class TCPMiddleware extends TCPServer {
             //If price > 0, then the item is available to be reserved
             if (price > 0){
                 customerServer.addReservationToCustomer(xid, customerID, Flight.getKey(ResourceManager.toInt(flightnum)), flightnum, price);
+                return true;
             }
-            return true;
-        } else {
-            return false;
         }
+        return false;
     }
 
     @Override
@@ -197,11 +198,10 @@ public class TCPMiddleware extends TCPServer {
             //If price > 0, then the item is available to be reserved
             if (price > 0){
                 customerServer.addReservationToCustomer(xid, customerID, Car.getKey(location), location, price);
+                return true;
             }
-            return true;
-        } else {
-            return false;
         }
+        return false;
     }
 
     @Override
@@ -217,14 +217,13 @@ public class TCPMiddleware extends TCPServer {
             //If price > 0, then the item is available to be reserved
             if (price > 0){
                 customerServer.addReservationToCustomer(xid, customerID, Room.getKey(location), location, price);
+                return true;
             }
-            return true;
-        } else {
-            return false;
         }
+        return false;
     }
 
-    //The next three methods are unused in the middleware, they are only added so we can reuse the interface.
+    //This method is unused in the middleware, it is only added so we can reuse the interface.
     @Override
     public Serializable cancelItem(Command cmd, Vector<String> arguments) {
         return null;
@@ -232,7 +231,59 @@ public class TCPMiddleware extends TCPServer {
 
     @Override
     public Serializable bundle(Command cmd, Vector<String> arguments) {
-        return null;
+        
+        int id = ResourceManager.toInt(arguments.elementAt(1));
+        int customerID = ResourceManager.toInt(arguments.elementAt(2));
+        Vector<String> flightNumbers = new Vector<String>();
+        for (int i = 0; i < arguments.size() - 6; ++i)
+        {
+            flightNumbers.addElement(arguments.elementAt(3+i));
+        }
+        String location = arguments.elementAt(arguments.size()-3);
+        boolean car = ResourceManager.toBoolean(arguments.elementAt(arguments.size()-2));
+        boolean room = ResourceManager.toBoolean(arguments.elementAt(arguments.size()-1));
+
+        boolean somethingReserved = false;
+
+        for (String flightNum : flightNumbers)
+        {
+            Command cmd2 = Command.fromString("reserveFlight");
+            Vector<String> args2 = new Vector<String>();
+            args2.add("reserveFlight");
+            args2.add(arguments.elementAt(1));
+            args2.add(arguments.elementAt(2));
+            args2.add(flightNum);
+
+            if ((boolean) reserveFlight(cmd2, args2))
+                somethingReserved = true;
+        }
+
+        //The arguments vector will be the same to reserve a car or a room
+        Vector<String> args2 = new Vector<String>();
+        args2.add(arguments.elementAt(1));
+        args2.add(arguments.elementAt(2));
+        args2.add(location);
+
+        if (car) {
+            Command cmd2 = Command.fromString("reserveCar");
+            args2.insertElementAt("reserveCar", 0);
+
+            if ((boolean) reserveCar(cmd2, args2))
+                somethingReserved = true;
+
+            //Remove the command from the start of the args vector, in case we also need to add a room
+            args2.remove(0);
+        }
+
+        if (room) {
+            Command cmd2 = Command.fromString("reserveRoom");
+            args2.insertElementAt("reserveRoom", 0);
+
+            if ((boolean) reserveRoom(cmd2, args2))
+                somethingReserved = true;
+        }
+
+        return somethingReserved;
     }
 
     @Override
