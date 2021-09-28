@@ -2,6 +2,7 @@ package Server.Middleware;
 
 import Server.Interface.Command;
 import Server.Interface.RemoteMethod;
+import Server.Common.*;
 import java.io.Serializable;
 import java.util.Vector;
 
@@ -12,6 +13,7 @@ public class TCPMiddleware extends TCPServer {
     private static ResourceServer flightServer;
     private static ResourceServer roomServer;
     private static ResourceServer carServer;
+    private static ResourceManager customerServer;
 
     public static void main(String args[]) {
         if (!(args.length == 3)) {
@@ -44,6 +46,7 @@ public class TCPMiddleware extends TCPServer {
         flightServer = new ResourceServer(addresses[0], port);
         roomServer = new ResourceServer(addresses[1], port);
         carServer = new ResourceServer(addresses[2], port);
+        customerServer = new ResourceManager("Customers");
     }
 
     @Override
@@ -63,12 +66,12 @@ public class TCPMiddleware extends TCPServer {
 
     @Override
     public Serializable newCustomer(Command cmd, Vector<String> arguments) {
-        return null;
+        return customerServer.newCustomer(cmd, arguments);
     }
 
     @Override
     public Serializable newCustomerId(Command cmd, Vector<String> arguments) {
-        return null;
+        return customerServer.newCustomerId(cmd, arguments);
     }
 
     @Override
@@ -88,7 +91,39 @@ public class TCPMiddleware extends TCPServer {
 
     @Override
     public Serializable deleteCustomer(Command cmd, Vector<String> arguments) {
-        return null;
+        int xid = ResourceManager.toInt(arguments.elementAt(1));
+        int customerID = ResourceManager.toInt(arguments.elementAt(2));
+
+        Vector<ReservedItem> reservedItems = customerServer.queryCustomerItems(xid, customerID);
+
+        if (reservedItems != null) {
+
+            for (ReservedItem item : reservedItems) {
+
+                Command cmd2 = Command.fromString("cancelItem");
+                Vector<String> args2 = new Vector<String>();
+                args2.add("cancelItem");
+                args2.add(arguments.elementAt(1));
+                args2.add(item.getKey());
+                args2.add(String.valueOf(item.getCount()));
+    
+                char itemType = item.getKey().charAt(0);
+    
+                switch (itemType) {
+                    case 'f':
+                        flightServer.sendRemoteMethod(new RemoteMethod(cmd2, args2));
+                        break;
+                    case 'c':
+                        carServer.sendRemoteMethod(new RemoteMethod(cmd2, args2));
+                        break;
+                    case 'r':
+                        roomServer.sendRemoteMethod(new RemoteMethod(cmd2, args2));
+                        break;
+                }
+            }
+        }
+
+        return customerServer.deleteCustomer(xid, customerID);
     }
 
     @Override
@@ -108,7 +143,7 @@ public class TCPMiddleware extends TCPServer {
 
     @Override
     public Serializable queryCustomerInfo(Command cmd, Vector<String> arguments) {
-        return null;
+        return customerServer.queryCustomerInfo(cmd, arguments);
     }
 
     @Override
@@ -118,7 +153,7 @@ public class TCPMiddleware extends TCPServer {
 
     @Override
     public Serializable queryCarsPrice(Command cmd, Vector<String> arguments) {
-        return null;
+        return carServer.sendRemoteMethod(new RemoteMethod(cmd, arguments));
     }
 
     @Override
@@ -126,19 +161,73 @@ public class TCPMiddleware extends TCPServer {
         return roomServer.sendRemoteMethod(new RemoteMethod(cmd, arguments));
     }
 
+
+
     @Override
     public Serializable reserveFlight(Command cmd, Vector<String> arguments) {
-        return flightServer.sendRemoteMethod(new RemoteMethod(cmd, arguments));
+
+        int xid = ResourceManager.toInt(arguments.elementAt(1));
+        int customerID = ResourceManager.toInt(arguments.elementAt(2));
+        String flightnum = arguments.elementAt(3);
+
+        //If queryCustomerInfo returns an empty string, then the customer doesn't exist
+        if (!customerServer.queryCustomerInfo(0, customerID).isEmpty()) {
+            int price = (int) flightServer.sendRemoteMethod(new RemoteMethod(cmd, arguments));
+
+            //If price > 0, then the item is available to be reserved
+            if (price > 0){
+                customerServer.addReservationToCustomer(xid, customerID, Flight.getKey(ResourceManager.toInt(flightnum)), flightnum, price);
+            }
+            return true;
+        } else {
+            return false;
+        }
     }
 
     @Override
     public Serializable reserveCar(Command cmd, Vector<String> arguments) {
-        return null;
+        int xid = ResourceManager.toInt(arguments.elementAt(1));
+        int customerID = ResourceManager.toInt(arguments.elementAt(2));
+        String location = arguments.elementAt(3);
+
+        //If queryCustomerInfo returns an empty string, then the customer doesn't exist
+        if (!customerServer.queryCustomerInfo(0, customerID).isEmpty()) {
+            int price = (int) carServer.sendRemoteMethod(new RemoteMethod(cmd, arguments));
+
+            //If price > 0, then the item is available to be reserved
+            if (price > 0){
+                customerServer.addReservationToCustomer(xid, customerID, Car.getKey(location), location, price);
+            }
+            return true;
+        } else {
+            return false;
+        }
     }
 
     @Override
     public Serializable reserveRoom(Command cmd, Vector<String> arguments) {
-        return roomServer.sendRemoteMethod(new RemoteMethod(cmd, arguments));
+        int xid = ResourceManager.toInt(arguments.elementAt(1));
+        int customerID = ResourceManager.toInt(arguments.elementAt(2));
+        String location = arguments.elementAt(3);
+
+        //If queryCustomerInfo returns an empty string, then the customer doesn't exist
+        if (!customerServer.queryCustomerInfo(0, customerID).isEmpty()) {
+            int price = (int) roomServer.sendRemoteMethod(new RemoteMethod(cmd, arguments));
+
+            //If price > 0, then the item is available to be reserved
+            if (price > 0){
+                customerServer.addReservationToCustomer(xid, customerID, Room.getKey(location), location, price);
+            }
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    //The next three methods are unused in the middleware, they are only added so we can reuse the interface.
+    @Override
+    public Serializable cancelItem(Command cmd, Vector<String> arguments) {
+        return null;
     }
 
     @Override
@@ -148,6 +237,6 @@ public class TCPMiddleware extends TCPServer {
 
     @Override
     public String getName() {
-        return null;
+        return name;
     }
 }

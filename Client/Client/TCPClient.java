@@ -6,7 +6,7 @@ import java.net.Socket;
 
 public class TCPClient extends Client {
 
-    private static String s_serverHost = "localhost";
+    private static String s_serverHost = "lab2-8.cs.mcgill.ca";
     private static int s_serverPort = 5163;
     private static String s_serverName = "Server";
 

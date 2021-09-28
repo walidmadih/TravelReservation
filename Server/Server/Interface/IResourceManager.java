@@ -176,6 +176,13 @@ public interface IResourceManager
     public Serializable reserveRoom(Command cmd, Vector<String> arguments);
 
     /**
+     * Cancel a reservation.
+     *
+     * @return Success
+     */
+    public Serializable cancelItem(Command cmd, Vector<String> arguments);
+
+    /**
      * Reserve a bundle for the trip.
      *
      * @return Success

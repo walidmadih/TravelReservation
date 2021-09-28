@@ -113,35 +113,45 @@ public class ResourceManager extends TCPServer {
     }
 
     // Reserve an item
-    protected boolean reserveItem(int xid, int customerID, String key, String location) {
-        Trace.info("RM::reserveItem(" + xid + ", customer=" + customerID + ", " + key + ", " + location + ") called");
-        // Read customer object if it exists (and read lock it)
-        Customer customer = (Customer) readData(xid, Customer.getKey(customerID));
-        if (customer == null) {
-            Trace.warn("RM::reserveItem(" + xid + ", " + customerID + ", " + key + ", " + location + ")  failed--customer doesn't exist");
-            return false;
-        }
+    protected int reserveItem(int xid, String key, String location) {
+        Trace.info("RM::reserveItem(" + xid + ", " + key + ", " + location + ") called");
 
         // Check if the item is available
         ReservableItem item = (ReservableItem) readData(xid, key);
         if (item == null) {
-            Trace.warn("RM::reserveItem(" + xid + ", " + customerID + ", " + key + ", " + location + ") failed--item doesn't exist");
-            return false;
+            Trace.warn("RM::reserveItem(" + xid + ", " + key + ", " + location + ") failed--item doesn't exist");
+            return 0;
         } else if (item.getCount() == 0) {
-            Trace.warn("RM::reserveItem(" + xid + ", " + customerID + ", " + key + ", " + location + ") failed--No more items");
-            return false;
+            Trace.warn("RM::reserveItem(" + xid + ", " + key + ", " + location + ") failed--No more items");
+            return 0;
         } else {
-            customer.reserve(key, location, item.getPrice());
-            writeData(xid, customer.getKey(), customer);
 
             // Decrease the number of available items in the storage
             item.setCount(item.getCount() - 1);
             item.setReserved(item.getReserved() + 1);
             writeData(xid, item.getKey(), item);
 
-            Trace.info("RM::reserveItem(" + xid + ", " + customerID + ", " + key + ", " + location + ") succeeded");
-            return true;
+            Trace.info("RM::reserveItem(" + xid + ", " + key + ", " + location + ") succeeded");
+            return item.getPrice();
         }
+    }
+
+    protected boolean cancelItem(int xid, String key, int numToCancel){
+
+        Trace.info("RM::cancelItem(" + xid + ", " + key + ", " + numToCancel + ") called");
+
+        Trace.info("RM::cancelItem(" + xid + ", " + key + ", " + numToCancel + ") has reserved " + key + " " + numToCancel + " times");
+        ReservableItem item = (ReservableItem) readData(xid, key);
+
+        if (item != null) {
+
+            Trace.info("RM::cancelItem(" + xid + ", " + key + ", " + numToCancel + ") has reserved " + key + " which is reserved " + item.getReserved() + " times and is still available " + item.getCount() + " times");
+            item.setReserved(item.getReserved() - numToCancel);
+            item.setCount(item.getCount() + numToCancel);
+            writeData(xid, item.getKey(), item);
+        }
+
+        return true;
     }
 
     // Create a new flight, or add seats to existing flight
@@ -269,6 +279,24 @@ public class ResourceManager extends TCPServer {
         }
     }
 
+    public Vector<ReservedItem> queryCustomerItems(int xid, int customerID) {
+
+        Customer customer = (Customer) readData(xid, Customer.getKey(customerID));
+
+        if (customer == null) {
+            return null;
+        }
+
+        RMHashMap reservations = customer.getReservations();
+        Vector<ReservedItem> reservedItems = new Vector<ReservedItem>();
+
+        for (String reservedKey : reservations.keySet()) {
+            reservedItems.add(customer.getReservedItem(reservedKey));
+        }
+
+        return reservedItems;
+    }
+
     public int newCustomer(int xid) {
         Trace.info("RM::newCustomer(" + xid + ") called");
         // Generate a globally unique ID for the new customer
@@ -295,6 +323,22 @@ public class ResourceManager extends TCPServer {
         }
     }
 
+    public boolean addReservationToCustomer(int xid, int customerID, String key, String location, int itemPrice) {
+        Trace.info("RM::addReservationToCustomer(" + xid + ", " + customerID + ", " + location + ", " + itemPrice + ") called");
+        Customer customer = (Customer) readData(xid, Customer.getKey(customerID));
+
+        if (customer == null) {
+            Trace.info("INFO: RM::addReservationToCustomer(" + xid + ", " + customerID + ", " + location + ", " + itemPrice + ") failed--customer does not exist");
+            return false;
+        } else {
+            customer.reserve(key, location, itemPrice);
+            writeData(xid, customer.getKey(), customer);
+
+            Trace.info("INFO: RM::addReservationToCustomer(" + xid + ", " + customerID + ", " + location + ", " + itemPrice + ") succeeded.");
+            return true;
+        }
+    }
+
     public boolean deleteCustomer(int xid, int customerID) {
         Trace.info("RM::deleteCustomer(" + xid + ", " + customerID + ") called");
         Customer customer = (Customer) readData(xid, Customer.getKey(customerID));
@@ -302,18 +346,6 @@ public class ResourceManager extends TCPServer {
             Trace.warn("RM::deleteCustomer(" + xid + ", " + customerID + ") failed--customer doesn't exist");
             return false;
         } else {
-            // Increase the reserved numbers of all reservable items which the customer reserved.
-            RMHashMap reservations = customer.getReservations();
-            for (String reservedKey : reservations.keySet()) {
-                ReservedItem reserveditem = customer.getReservedItem(reservedKey);
-                Trace.info("RM::deleteCustomer(" + xid + ", " + customerID + ") has reserved " + reserveditem.getKey() + " " + reserveditem.getCount() + " times");
-                ReservableItem item = (ReservableItem) readData(xid, reserveditem.getKey());
-                Trace.info("RM::deleteCustomer(" + xid + ", " + customerID + ") has reserved " + reserveditem.getKey() + " which is reserved " + item.getReserved() + " times and is still available " + item.getCount() + " times");
-                item.setReserved(item.getReserved() - reserveditem.getCount());
-                item.setCount(item.getCount() + reserveditem.getCount());
-                writeData(xid, item.getKey(), item);
-            }
-
             // Remove the customer from the storage
             removeData(xid, customer.getKey());
             Trace.info("RM::deleteCustomer(" + xid + ", " + customerID + ") succeeded");
@@ -322,18 +354,18 @@ public class ResourceManager extends TCPServer {
     }
 
     // Adds flight reservation to this customer
-    public boolean reserveFlight(int xid, int customerID, int flightNum) {
-        return reserveItem(xid, customerID, Flight.getKey(flightNum), String.valueOf(flightNum));
+    public int reserveFlight(int xid, int flightNum) {
+        return reserveItem(xid, Flight.getKey(flightNum), String.valueOf(flightNum));
     }
 
     // Adds car reservation to this customer
-    public boolean reserveCar(int xid, int customerID, String location) {
-        return reserveItem(xid, customerID, Car.getKey(location), location);
+    public int reserveCar(int xid, String location) {
+        return reserveItem(xid, Car.getKey(location), location);
     }
 
     // Adds room reservation to this customer
-    public boolean reserveRoom(int xid, int customerID, String location) {
-        return reserveItem(xid, customerID, Room.getKey(location), location);
+    public int reserveRoom(int xid, String location) {
+        return reserveItem(xid, Room.getKey(location), location);
     }
 
     // Reserve bundle
@@ -430,12 +462,12 @@ public class ResourceManager extends TCPServer {
 
     @Override
     public Serializable deleteCustomer(Command cmd, Vector<String> arguments) {
-            if (!checkArgumentsCount(3, arguments.size())){return new IllegalArgumentException("Invalid number of arguments.");}
+        if (!checkArgumentsCount(3, arguments.size())){return new IllegalArgumentException("Invalid number of arguments.");}
 
-            int id = toInt(arguments.elementAt(1));
-            int customerID = toInt(arguments.elementAt(2));
+        int id = toInt(arguments.elementAt(1));
+        int customerID = toInt(arguments.elementAt(2));
 
-            return deleteCustomer(id, customerID);
+        return deleteCustomer(id, customerID);
     }
 
     @Override
@@ -471,12 +503,12 @@ public class ResourceManager extends TCPServer {
 
     @Override
     public Serializable queryCustomerInfo(Command cmd, Vector<String> arguments) {
-            if (!checkArgumentsCount(3, arguments.size())){return new IllegalArgumentException("Invalid number of arguments.");}
+        if (!checkArgumentsCount(3, arguments.size())){return new IllegalArgumentException("Invalid number of arguments.");}
 
-            int id = toInt(arguments.elementAt(1));
-            int customerID = toInt(arguments.elementAt(2));
+        int id = toInt(arguments.elementAt(1));
+        int customerID = toInt(arguments.elementAt(2));
 
-            return queryCustomerInfo(id, customerID);
+        return queryCustomerInfo(id, customerID);
     }
 
     @Override
@@ -515,32 +547,40 @@ public class ResourceManager extends TCPServer {
             if (!checkArgumentsCount(4, arguments.size())){return new IllegalArgumentException("Invalid number of arguments.");}
 
             int id = toInt(arguments.elementAt(1));
-            int customerID = toInt(arguments.elementAt(2));
             int flightNum = toInt(arguments.elementAt(3));
 
-            return reserveFlight(id, customerID, flightNum);
+            return reserveFlight(id, flightNum);
     }
 
     @Override
     public Serializable reserveCar(Command cmd, Vector<String> arguments) {
-            if (!checkArgumentsCount(4, arguments.size())){return new IllegalArgumentException("Invalid number of arguments.");}
+        if (!checkArgumentsCount(4, arguments.size())){return new IllegalArgumentException("Invalid number of arguments.");}
 
-            int id = toInt(arguments.elementAt(1));
-            int customerID = toInt(arguments.elementAt(2));
-            String location = arguments.elementAt(3);
+        int id = toInt(arguments.elementAt(1));
+        String location = arguments.elementAt(3);
 
-            return reserveCar(id, customerID, location);
+        return reserveCar(id, location);
     }
 
     @Override
     public Serializable reserveRoom(Command cmd, Vector<String> arguments) {
-            if (!checkArgumentsCount(4, arguments.size())){return new IllegalArgumentException("Invalid number of arguments.");}
+        if (!checkArgumentsCount(4, arguments.size())){return new IllegalArgumentException("Invalid number of arguments.");}
 
-            int id = toInt(arguments.elementAt(1));
-            int customerID = toInt(arguments.elementAt(2));
-            String location = arguments.elementAt(3);
+        int id = toInt(arguments.elementAt(1));
+        String location = arguments.elementAt(3);
 
-            return reserveRoom(id, customerID, location);
+        return reserveRoom(id, location);
+    }
+
+    @Override 
+    public Serializable cancelItem(Command cmd, Vector<String> arguments){
+        if (!checkArgumentsCount(4, arguments.size())){return new IllegalArgumentException("Invalid number of arguments.");}
+
+        int id = toInt(arguments.elementAt(1));
+        String key = arguments.elementAt(2);
+        int numToCancel = toInt(arguments.elementAt(3));
+
+        return cancelItem(id, key, numToCancel);
     }
 
     @Override

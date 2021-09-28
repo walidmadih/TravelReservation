@@ -92,7 +92,7 @@ public abstract class Client
 				int flightPrice = toInt(arguments.elementAt(4));
 				*/
 
-				if (getRemoteResponse(remoteMethod)) {
+				if ((boolean) getRemoteResponse(remoteMethod)) {
 					System.out.println("Flight added");
 				} else {
 					System.out.println("Flight could not be added");
@@ -115,7 +115,7 @@ public abstract class Client
 				int numCars = toInt(arguments.elementAt(3));
 				int price = toInt(arguments.elementAt(4));
 
-				if (getRemoteResponse(remoteMethod)) {
+				if ((boolean) getRemoteResponse(remoteMethod)) {
 					System.out.println("Cars added");
 				} else {
 					System.out.println("Cars could not be added");
@@ -137,14 +137,13 @@ public abstract class Client
 				int numRooms = toInt(arguments.elementAt(3));
 				int price = toInt(arguments.elementAt(4));
 
-				if (getRemoteResponse(remoteMethod)) {
+				if ((boolean) getRemoteResponse(remoteMethod)) {
 					System.out.println("Rooms added");
 				} else {
 					System.out.println("Rooms could not be added");
 				}
 				break;
 			}
-			/*
 			case AddCustomer: {
 				if (2 != arguments.size()) {
 					break;
@@ -153,11 +152,12 @@ public abstract class Client
 				System.out.println("Adding a new customer [xid=" + arguments.elementAt(1) + "]");
 
 				int id = toInt(arguments.elementAt(1));
-				int customer = m_resourceManager.newCustomer(id);
+				int customer = (int) getRemoteResponse(remoteMethod);
 
 				System.out.println("Add customer ID: " + customer);
 				break;
 			}
+			
 			case AddCustomerID: {
 				if (3 != arguments.size()) {
 					break;
@@ -169,14 +169,14 @@ public abstract class Client
 				int id = toInt(arguments.elementAt(1));
 				int customerID = toInt(arguments.elementAt(2));
 
-				if (getRemoteResponse(remoteMethod)) {
+				if ((boolean) getRemoteResponse(remoteMethod)) {
 					System.out.println("Add customer ID: " + customerID);
 				} else {
 					System.out.println("Customer could not be added");
 				}
 				break;
 			}
-			*/
+			
 			case DeleteFlight: {
 				if (3 != arguments.size()) {
 					break;
@@ -188,7 +188,7 @@ public abstract class Client
 				int id = toInt(arguments.elementAt(1));
 				int flightNum = toInt(arguments.elementAt(2));
 
-				if (getRemoteResponse(remoteMethod)) {
+				if ((boolean) getRemoteResponse(remoteMethod)) {
 					System.out.println("Flight Deleted");
 				} else {
 					System.out.println("Flight could not be deleted");
@@ -206,7 +206,7 @@ public abstract class Client
 				int id = toInt(arguments.elementAt(1));
 				String location = arguments.elementAt(2);
 
-				if (getRemoteResponse(remoteMethod)) {
+				if ((boolean) getRemoteResponse(remoteMethod)) {
 					System.out.println("Cars Deleted");
 				} else {
 					System.out.println("Cars could not be deleted");
@@ -224,7 +224,7 @@ public abstract class Client
 				int id = toInt(arguments.elementAt(1));
 				String location = arguments.elementAt(2);
 
-				if (getRemoteResponse(remoteMethod)) {
+				if ((boolean) getRemoteResponse(remoteMethod)) {
 					System.out.println("Rooms Deleted");
 				} else {
 					System.out.println("Rooms could not be deleted");
@@ -242,14 +242,13 @@ public abstract class Client
 				int id = toInt(arguments.elementAt(1));
 				int customerID = toInt(arguments.elementAt(2));
 
-				if (getRemoteResponse(remoteMethod)) {
+				if ((boolean) getRemoteResponse(remoteMethod)) {
 					System.out.println("Customer Deleted");
 				} else {
 					System.out.println("Customer could not be deleted");
 				}
 				break;
 			}
-			/*
 			case QueryFlight: {
 				if (3 != arguments.size()) {
 					break;
@@ -261,7 +260,7 @@ public abstract class Client
 				int id = toInt(arguments.elementAt(1));
 				int flightNum = toInt(arguments.elementAt(2));
 
-				int seats = m_resourceManager.queryFlight(id, flightNum);
+				int seats = (int) getRemoteResponse(remoteMethod);
 				System.out.println("Number of seats available: " + seats);
 				break;
 			}
@@ -276,7 +275,7 @@ public abstract class Client
 				int id = toInt(arguments.elementAt(1));
 				String location = arguments.elementAt(2);
 
-				int numCars = m_resourceManager.queryCars(id, location);
+				int numCars = (int) getRemoteResponse(remoteMethod);
 				System.out.println("Number of cars at this location: " + numCars);
 				break;
 			}
@@ -291,7 +290,7 @@ public abstract class Client
 				int id = toInt(arguments.elementAt(1));
 				String location = arguments.elementAt(2);
 
-				int numRoom = m_resourceManager.queryRooms(id, location);
+				int numRoom = (int) getRemoteResponse(remoteMethod);
 				System.out.println("Number of rooms at this location: " + numRoom);
 				break;
 			}
@@ -306,7 +305,7 @@ public abstract class Client
 				int id = toInt(arguments.elementAt(1));
 				int customerID = toInt(arguments.elementAt(2));
 
-				String bill = m_resourceManager.queryCustomerInfo(id, customerID);
+				String bill = (String) getRemoteResponse(remoteMethod);
 				System.out.print(bill);
 				break;
 			}
@@ -321,7 +320,7 @@ public abstract class Client
 				int id = toInt(arguments.elementAt(1));
 				int flightNum = toInt(arguments.elementAt(2));
 
-				int price = m_resourceManager.queryFlightPrice(id, flightNum);
+				int price = (int) getRemoteResponse(remoteMethod);
 				System.out.println("Price of a seat: " + price);
 				break;
 			}
@@ -336,7 +335,7 @@ public abstract class Client
 				int id = toInt(arguments.elementAt(1));
 				String location = arguments.elementAt(2);
 
-				int price = m_resourceManager.queryCarsPrice(id, location);
+				int price = (int) getRemoteResponse(remoteMethod);
 				System.out.println("Price of cars at this location: " + price);
 				break;
 			}
@@ -351,10 +350,10 @@ public abstract class Client
 				int id = toInt(arguments.elementAt(1));
 				String location = arguments.elementAt(2);
 
-				int price = m_resourceManager.queryRoomsPrice(id, location);
+				int price = (int) getRemoteResponse(remoteMethod);
 				System.out.println("Price of rooms at this location: " + price);
 				break;
-			}*/
+			}
 			case ReserveFlight: {
 				if (4 != arguments.size()) {
 					break;
@@ -368,7 +367,7 @@ public abstract class Client
 				int customerID = toInt(arguments.elementAt(2));
 				int flightNum = toInt(arguments.elementAt(3));
 
-				if (getRemoteResponse(remoteMethod)) {
+				if ((boolean) getRemoteResponse(remoteMethod)) {
 					System.out.println("Flight Reserved");
 				} else {
 					System.out.println("Flight could not be reserved");
@@ -388,7 +387,7 @@ public abstract class Client
 				int customerID = toInt(arguments.elementAt(2));
 				String location = arguments.elementAt(3);
 
-				if (getRemoteResponse(remoteMethod)) {
+				if ((boolean) getRemoteResponse(remoteMethod)) {
 					System.out.println("Car Reserved");
 				} else {
 					System.out.println("Car could not be reserved");
@@ -408,7 +407,7 @@ public abstract class Client
 				int customerID = toInt(arguments.elementAt(2));
 				String location = arguments.elementAt(3);
 
-				if (getRemoteResponse(remoteMethod)) {
+				if ((boolean) getRemoteResponse(remoteMethod)) {
 					System.out.println("Room Reserved");
 				} else {
 					System.out.println("Room could not be reserved");
@@ -440,7 +439,7 @@ public abstract class Client
 				boolean car = toBoolean(arguments.elementAt(arguments.size() - 2));
 				boolean room = toBoolean(arguments.elementAt(arguments.size() - 1));
 
-				if (getRemoteResponse(remoteMethod)) {
+				if ((boolean) getRemoteResponse(remoteMethod)) {
 					System.out.println("Bundle Reserved");
 				} else {
 					System.out.println("Bundle could not be reserved");
@@ -457,14 +456,14 @@ public abstract class Client
 
 	}
 
-	public boolean getRemoteResponse(RemoteMethod remoteMethod){
+	public Serializable getRemoteResponse(RemoteMethod remoteMethod){
 		try {
 			objectOutputStream.writeObject(remoteMethod);
-			return (boolean) objectInputStream.readObject();
+			return (Serializable) objectInputStream.readObject();
 		}catch (IOException | ClassNotFoundException e ){
 			e.printStackTrace();
 			System.out.println("There was an error while communicating with the server.");
-			return false;
+			return null;
 		}
 	}
 

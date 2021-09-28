@@ -157,6 +157,10 @@ public abstract class TCPServer implements IResourceManager{
                 response = reserveRoom(cmd, arguments);
                 break;
             }
+            case CancelItem: {
+                response = cancelItem(cmd, arguments);
+                break;
+            }
             case Bundle: {
                 response = bundle(cmd, arguments);
                 break;
