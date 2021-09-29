@@ -68,7 +68,7 @@ public abstract class TCPServer implements IResourceManager{
         }
         try {
             while (true) {
-                new TCPConnection(serverSocket.accept()).run();
+                new TCPConnection(serverSocket.accept()).start();
             }
         } catch (IOException e) {
             System.out.println("Failed to accept client connection.");
