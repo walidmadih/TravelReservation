@@ -19,6 +19,12 @@ public class Customer extends RMItem
 		m_ID = id;
 	}
 
+	public Customer(int id, RMHashMap reservations) {
+		super();
+		m_reservations = reservations;
+		m_ID = id;
+	}
+
 	public void setID(int id)
 	{
 		m_ID = id;

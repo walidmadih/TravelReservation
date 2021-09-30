@@ -276,22 +276,41 @@ public class ResourceManager implements IResourceManager
 		return queryPrice(xid, Room.getKey(location));
 	}
 
-	public String queryCustomerInfo(int xid, int customerID) throws RemoteException
+	public RMHashMap queryCustomerReservations(int xid, int customerID) throws RemoteException 
 	{
-		Trace.info("RM::queryCustomerInfo(" + xid + ", " + customerID + ") called");
+		Trace.info("RM::queryCustomerReservations(" + xid + ", " + customerID + ") called");
 		Customer customer = (Customer)readData(xid, Customer.getKey(customerID));
 		if (customer == null)
 		{
-			Trace.warn("RM::queryCustomerInfo(" + xid + ", " + customerID + ") failed--customer doesn't exist");
+			Trace.warn("RM::queryCustomerReservations(" + xid + ", " + customerID + ") failed--customer doesn't exist");
 			// NOTE: don't change this--WC counts on this value indicating a customer does not exist...
-			return "";
+			return null;
 		}
 		else
 		{
-			Trace.info("RM::queryCustomerInfo(" + xid + ", " + customerID + ")");
-			System.out.println(customer.getBill());
-			return customer.getBill();
+			Trace.info("RM::queryCustomerReservations(" + xid + ", " + customerID + ") succeeded.");
+			return customer.getReservations();
 		}
+	}
+
+	//This method is not used in the middleware, only at the resource server level, so no implementation is needed.
+	public String queryCustomerInfo(int xid, int customerID) throws RemoteException
+	{
+		// Trace.info("RM::queryCustomerInfo(" + xid + ", " + customerID + ") called");
+		// Customer customer = (Customer)readData(xid, Customer.getKey(customerID));
+		// if (customer == null)
+		// {
+		// 	Trace.warn("RM::queryCustomerInfo(" + xid + ", " + customerID + ") failed--customer doesn't exist");
+		// 	// NOTE: don't change this--WC counts on this value indicating a customer does not exist...
+		// 	return "";
+		// }
+		// else
+		// {
+		// 	Trace.info("RM::queryCustomerInfo(" + xid + ", " + customerID + ")");
+		// 	System.out.println(customer.getBill());
+		// 	return customer.getBill();
+		// }
+		return null;
 	}
 
 	public int newCustomer(int xid) throws RemoteException

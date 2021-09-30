@@ -5,6 +5,8 @@ import java.rmi.RemoteException;
 
 import java.util.*;
 
+import Server.Common.RMHashMap;
+
 /** 
  * Simplified version from CSE 593 Univ. of Washington
  *
@@ -143,6 +145,14 @@ public interface IResourceManager extends Remote
      * @return A formatted bill for the customer
      */
     public String queryCustomerInfo(int id, int customerID) 
+	throws RemoteException; 
+
+    /**
+     * Query the customer reservation map object.
+     *
+     * @return A map of the customer's reservations
+     */
+    public RMHashMap queryCustomerReservations(int id, int customerID) 
 	throws RemoteException; 
     
     /**

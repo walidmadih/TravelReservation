@@ -1,6 +1,8 @@
 package Server.RMI;
 
 import Server.Interface.IResourceManager;
+import Server.Common.Customer;
+import Server.Common.RMHashMap;
 
 import java.rmi.Remote;
 import java.rmi.registry.LocateRegistry;
@@ -117,8 +119,8 @@ public class RMIMiddleware implements IResourceManager{
 
     public int newCustomer(int id) throws RemoteException{
         int cid = manager_Flights.newCustomer(id);
-        manager_Cars.newCustomer(id);
-        manager_Rooms.newCustomer(id);
+        manager_Cars.newCustomer(id, cid);
+        manager_Rooms.newCustomer(id, cid);
         return cid;
     }
 
@@ -174,9 +176,28 @@ public class RMIMiddleware implements IResourceManager{
      * @return A formatted bill for the customer
      */
     public String queryCustomerInfo(int id, int customerID) throws RemoteException{
-        return manager_Flights.queryCustomerInfo(id, customerID)+
-                manager_Cars.queryCustomerInfo(id, customerID)+
-                manager_Flights.queryCustomerInfo(id, customerID);
+        
+        //Retrieve reservations from all 3 servers
+        RMHashMap flightReservations = manager_Flights.queryCustomerReservations(id, customerID);
+        RMHashMap carReservations = manager_Cars.queryCustomerReservations(id, customerID);
+        RMHashMap roomReservations = manager_Rooms.queryCustomerReservations(id, customerID);
+
+        //Combine all reservations into a single hashmap
+        flightReservations.putAll(carReservations);
+        flightReservations.putAll(roomReservations);
+
+        //Create a temporary instance of customer to print the bill.
+        Customer cust = new Customer(customerID, flightReservations);
+        return cust.getBill();
+    }
+
+    /**
+     * This method is not used in the middleware, only at the resource server level, so no implementation is needed.
+     *
+     * @return A map of the customer's reservations
+     */
+    public RMHashMap queryCustomerReservations(int id, int customerID) throws RemoteException{
+        return null;
     }
 
     /**
@@ -239,7 +260,24 @@ public class RMIMiddleware implements IResourceManager{
      * @return Success
      */
     public boolean bundle(int id, int customerID, Vector<String> flightNumbers, String location, boolean car, boolean room) throws RemoteException{
-        return false;
+        
+        boolean somethingReserved = false;
+        for (String flightNum : flightNumbers) {
+            if (manager_Flights.reserveFlight(id, customerID, flightNum))
+                somethingReserved = true;
+        }
+
+        if (car) {
+            if (manager_Cars.reserveCar(id, customerID, location))
+                somethingReserved = true;
+        }
+
+        if (room) {
+            if (manager_Rooms.reserveRoom(id, customerID, location))
+                somethingReserved = true;
+        }
+
+        return somethingReserved;
     }
 
     /**

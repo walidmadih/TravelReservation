@@ -8,10 +8,11 @@ java.policy: FORCE
 
 FORCE: ;
 
-RMIInterface.jar: Server/Interface/IResourceManager.java
+RMIInterface.jar: Server/Interface/IResourceManager.java Server/Common/RMHashMap.java
 	@echo "Compiling RMI server interface"
 	javac Server/Interface/IResourceManager.java
-	jar cvf RMIInterface.jar Server/Interface/IResourceManager.class
+	javac Server/Common/RMHashMap.java
+	jar cvf RMIInterface.jar Server/Interface/IResourceManager.class Server/Common/RMHashMap.class
 
 compile-server-rmi: Server/RMI/*.java Server/Interface/IResourceManager.java Server/Common/*.java
 	javac Server/RMI/*.java Server/Interface/IResourceManager.java Server/Common/*.java
