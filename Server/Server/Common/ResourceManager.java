@@ -293,23 +293,9 @@ public class ResourceManager implements IResourceManager
 		}
 	}
 
-	//This method is not used in the middleware, only at the resource server level, so no implementation is needed.
+	//This method is not used in the individual resource servers, only at the middleware level, so no implementation is needed.
 	public String queryCustomerInfo(int xid, int customerID) throws RemoteException
 	{
-		// Trace.info("RM::queryCustomerInfo(" + xid + ", " + customerID + ") called");
-		// Customer customer = (Customer)readData(xid, Customer.getKey(customerID));
-		// if (customer == null)
-		// {
-		// 	Trace.warn("RM::queryCustomerInfo(" + xid + ", " + customerID + ") failed--customer doesn't exist");
-		// 	// NOTE: don't change this--WC counts on this value indicating a customer does not exist...
-		// 	return "";
-		// }
-		// else
-		// {
-		// 	Trace.info("RM::queryCustomerInfo(" + xid + ", " + customerID + ")");
-		// 	System.out.println(customer.getBill());
-		// 	return customer.getBill();
-		// }
 		return null;
 	}
 
