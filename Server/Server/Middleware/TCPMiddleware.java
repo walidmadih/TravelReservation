@@ -16,8 +16,12 @@ public class TCPMiddleware extends TCPServer {
     private static ResourceManager customerServer;
 
     public static void main(String args[]) {
-        if (!(args.length == 3)) {
+        if (args.length < 3 || args.length > 4) {
             throw new IllegalArgumentException("Invalid Argument Count");
+        }
+
+        if (args.length == 4) {
+            port = ResourceManager.toInt(args[3]);
         }
 
         connectServers(args);
