@@ -383,6 +383,12 @@ public class ResourceManager extends TCPServer {
 
     @Override
     public Serializable addCars(Command cmd, Vector<String> arguments) {
+        int count = 0;
+        while(true){
+            if (count > 0){
+                break;
+            }
+        }
         if (!checkArgumentsCount(5, arguments.size())){return new IllegalArgumentException("Invalid number of arguments.");}
 
         int id = toInt(arguments.elementAt(1));
