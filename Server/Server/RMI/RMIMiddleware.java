@@ -13,10 +13,12 @@ import java.rmi.server.UnicastRemoteObject;
 import java.util.Vector;
 
 public class RMIMiddleware implements IResourceManager{
+
     private String server_name = "Middleware";
     private IResourceManager manager_Flights = null;
     private IResourceManager manager_Cars = null;
     private IResourceManager manager_Rooms = null;
+
     public static void main(String args[]){
         String host1 = args[0];
         String host2 = args[1];
@@ -24,6 +26,12 @@ public class RMIMiddleware implements IResourceManager{
         int port = 2034;
         String s_rmiPrefix = "group_34_";
         String server_name = "Middleware";
+
+        if (args.length > 3)
+        {
+            port = Integer.parseInt(args[3]);
+        }
+
         // Set the security policy
         if (System.getSecurityManager() == null)
         {
@@ -32,9 +40,9 @@ public class RMIMiddleware implements IResourceManager{
         try {
             // Create a new Server object
             RMIMiddleware server = new RMIMiddleware();
-            server.connectResources(host1,"Flights");
-            server.connectResources(host2,"Cars");
-            server.connectResources(host3,"Rooms");
+            server.connectResources(host1,"Flights", port);
+            server.connectResources(host2,"Cars", port);
+            server.connectResources(host3,"Rooms", port);
             // Dynamically generate the stub (client proxy)
             IResourceManager middleware = (IResourceManager) UnicastRemoteObject.exportObject(server, 0);
 
@@ -69,8 +77,7 @@ public class RMIMiddleware implements IResourceManager{
         }
     }
 
-    public void connectResources(String host,String name){
-        int port = 2034;
+    public void connectResources(String host, String name, int port){
         String s_rmiPrefix = "group_34_";
         try{
             boolean first = true;
