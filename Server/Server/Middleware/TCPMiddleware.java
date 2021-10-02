@@ -177,7 +177,7 @@ public class TCPMiddleware extends TCPServer {
         String flightnum = arguments.elementAt(3);
 
         //If queryCustomerInfo returns an empty string, then the customer doesn't exist
-        if (!customerServer.queryCustomerInfo(0, customerID).isEmpty()) {
+        if (customerServer.doesCustomerExist(xid, customerID)) {
             int price = (int) flightServer.sendRemoteMethod(new RemoteMethod(cmd, arguments));
 
             //If price > 0, then the item is available to be reserved
@@ -196,7 +196,7 @@ public class TCPMiddleware extends TCPServer {
         String location = arguments.elementAt(3);
 
         //If queryCustomerInfo returns an empty string, then the customer doesn't exist
-        if (!customerServer.queryCustomerInfo(0, customerID).isEmpty()) {
+        if (customerServer.doesCustomerExist(xid, customerID)) {
             int price = (int) carServer.sendRemoteMethod(new RemoteMethod(cmd, arguments));
 
             //If price > 0, then the item is available to be reserved
@@ -215,7 +215,7 @@ public class TCPMiddleware extends TCPServer {
         String location = arguments.elementAt(3);
 
         //If queryCustomerInfo returns an empty string, then the customer doesn't exist
-        if (!customerServer.queryCustomerInfo(0, customerID).isEmpty()) {
+        if (customerServer.doesCustomerExist(xid, customerID)) {
             int price = (int) roomServer.sendRemoteMethod(new RemoteMethod(cmd, arguments));
 
             //If price > 0, then the item is available to be reserved

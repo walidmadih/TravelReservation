@@ -283,6 +283,11 @@ public class ResourceManager extends TCPServer {
         }
     }
 
+    public boolean doesCustomerExist(int xid, int customerID) {
+        Customer customer = (Customer) readData(xid, Customer.getKey(customerID));
+        return customer != null;
+    }
+
     public Vector<ReservedItem> queryCustomerItems(int xid, int customerID) {
 
         Customer customer = (Customer) readData(xid, Customer.getKey(customerID));
