@@ -21,11 +21,15 @@ public class ResourceManager extends TCPServer {
     }
 
     public static void main(String args[]) {
-        if (!(args.length == 1)) {
+        if (args.length < 1 || args.length > 2) {
             throw new IllegalArgumentException("Invalid Argument Count");
         }
 
         m_name = args[0];
+
+        if (args.length == 2) {
+            port = Integer.parseInt(args[1]);
+        }
 
         // Create the RMI server entry
         try {
@@ -277,6 +281,11 @@ public class ResourceManager extends TCPServer {
             System.out.println(customer.getBill());
             return customer.getBill();
         }
+    }
+
+    public boolean doesCustomerExist(int xid, int customerID) {
+        Customer customer = (Customer) readData(xid, Customer.getKey(customerID));
+        return customer != null;
     }
 
     public Vector<ReservedItem> queryCustomerItems(int xid, int customerID) {
