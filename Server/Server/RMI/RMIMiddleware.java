@@ -263,7 +263,7 @@ public class RMIMiddleware implements IResourceManager{
         
         boolean somethingReserved = false;
         for (String flightNum : flightNumbers) {
-            if (manager_Flights.reserveFlight(id, customerID, flightNum))
+            if (manager_Flights.reserveFlight(id, customerID, Integer.parseInt(flightNum)))
                 somethingReserved = true;
         }
 
