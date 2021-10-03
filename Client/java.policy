@@ -1,0 +1,3 @@
+grant codebase "file:/home/2019/rhuang26/COMP512_RMI_FINAL/TravelReservation/Client/" {
+permission java.security.AllPermission;
+};
