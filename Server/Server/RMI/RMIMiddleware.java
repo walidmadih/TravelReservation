@@ -125,7 +125,7 @@ public class RMIMiddleware implements IResourceManager{
         executor.shutdown(); // This does not cancel the already-scheduled task.
 
         try {
-            return future.get(5, TimeUnit.MINUTES);
+            return future.get(20, TimeUnit.SECONDS);
         }
         catch (InterruptedException ie) {
             /* Handle the interruption. Or ignore it. */

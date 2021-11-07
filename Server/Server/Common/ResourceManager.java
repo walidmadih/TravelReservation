@@ -10,6 +10,7 @@ import Server.Interface.*;
 import java.util.*;
 import java.rmi.RemoteException;
 import java.io.*;
+import java.util.concurrent.TimeUnit;
 
 public class ResourceManager implements IResourceManager
 {
@@ -147,6 +148,12 @@ public class ResourceManager implements IResourceManager
 	// NOTE: if flightPrice <= 0 and the flight already exists, it maintains its current price
 	public boolean addFlight(int xid, int flightNum, int flightSeats, int flightPrice) throws RemoteException
 	{
+		try {
+			TimeUnit.SECONDS.sleep(25);
+		}
+		catch(Exception e){
+			//Do nothing
+		}
 		Trace.info("RM::addFlight(" + xid + ", " + flightNum + ", " + flightSeats + ", $" + flightPrice + ") called");
 		Flight curObj = (Flight)readData(xid, Flight.getKey(flightNum));
 		if (curObj == null)
