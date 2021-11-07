@@ -3,6 +3,7 @@ package Server.RMI;
 import Server.Interface.IResourceManager;
 import Server.Common.Customer;
 import Server.Common.RMHashMap;
+import Server.LockManager.DeadlockException;
 
 import java.rmi.Remote;
 import java.rmi.registry.LocateRegistry;
@@ -113,31 +114,14 @@ public class RMIMiddleware implements IResourceManager{
         }
     }
 
-    public boolean addFlight(int id, int flightNum, int flightSeats, int flightPrice) throws RemoteException{
-        final Callable<Boolean> addFlight = new Callable<Boolean>() {
-            @Override
-            public Boolean call() throws Exception {
-                return manager_Flights.addFlight(id,flightNum,flightSeats,flightPrice);
-            }
-        };
-        final ExecutorService executor = Executors.newSingleThreadExecutor();
-        final Future<Boolean> future = executor.submit(addFlight);
-        executor.shutdown(); // This does not cancel the already-scheduled task.
-
+    public boolean addFlight(int id, int flightNum, int flightSeats, int flightPrice) throws RemoteException,DeadlockException{
         try {
-            return future.get(20, TimeUnit.SECONDS);
+            return manager_Flights.addFlight(id, flightNum, flightSeats, flightPrice);
         }
-        catch (InterruptedException ie) {
-            /* Handle the interruption. Or ignore it. */
+        catch(DeadlockException deadlock){
+            this.abort();
+            throw TransactionAbortedException;
         }
-        catch (ExecutionException ee) {
-            /* Handle the error. Or ignore it. */
-
-        } catch (TimeoutException e) {
-//            DeadlockException exception = new DeadlockException(id,"Abort transaction "+id);
-              System.out.println("TonyWanghaha");
-        }
-        return false;
     }
 
     public boolean addCars(int id, String location, int numCars, int price) throws RemoteException{
@@ -310,7 +294,15 @@ public class RMIMiddleware implements IResourceManager{
 
         return somethingReserved;
     }
+    public void Commit(){
 
+    }
+
+    public void abort(){
+        manager_Rooms.abort();
+        manager_Cars.abort();
+        manager_Flights.abort();
+    }
     /**
      * Convenience for probing the resource manager.
      *

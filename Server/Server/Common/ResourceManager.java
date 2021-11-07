@@ -6,6 +6,9 @@
 package Server.Common;
 
 import Server.Interface.*;
+import Server.LockManager.DeadlockException;
+import Server.LockManager.LockManager;
+import Server.LockManager.TransactionLockObject;
 
 import java.util.*;
 import java.rmi.RemoteException;
@@ -16,6 +19,7 @@ public class ResourceManager implements IResourceManager
 {
 	protected String m_name = "";
 	protected RMHashMap m_data = new RMHashMap();
+	private LockManager lManager = new LockManager();
 
 	public ResourceManager(String p_name)
 	{
@@ -34,6 +38,13 @@ public class ResourceManager implements IResourceManager
 		}
 	}
 
+	public void Commit(){
+
+	}
+
+	public void abort(){
+
+	}
 	// Writes a data item
 	protected void writeData(int xid, String key, RMItem value)
 	{
@@ -78,13 +89,12 @@ public class ResourceManager implements IResourceManager
 	}
 
 	// Query the number of available seats/rooms/cars
-	protected int queryNum(int xid, String key)
+	protected int queryNum (int xid, String key)
 	{
 		Trace.info("RM::queryNum(" + xid + ", " + key + ") called");
-		ReservableItem curObj = (ReservableItem)readData(xid, key);
-		int value = 0;  
-		if (curObj != null)
-		{
+		ReservableItem curObj = (ReservableItem) readData(xid, key);
+		int value = 0;
+		if (curObj != null) {
 			value = curObj.getCount();
 		}
 		Trace.info("RM::queryNum(" + xid + ", " + key + ") returns count=" + value);
@@ -146,35 +156,35 @@ public class ResourceManager implements IResourceManager
 
 	// Create a new flight, or add seats to existing flight
 	// NOTE: if flightPrice <= 0 and the flight already exists, it maintains its current price
-	public boolean addFlight(int xid, int flightNum, int flightSeats, int flightPrice) throws RemoteException
+	public boolean addFlight(int xid, int flightNum, int flightSeats, int flightPrice) throws RemoteException,DeadlockException
 	{
 		try {
-			TimeUnit.SECONDS.sleep(25);
-		}
-		catch(Exception e){
-			//Do nothing
-		}
-		Trace.info("RM::addFlight(" + xid + ", " + flightNum + ", " + flightSeats + ", $" + flightPrice + ") called");
-		Flight curObj = (Flight)readData(xid, Flight.getKey(flightNum));
-		if (curObj == null)
-		{
-			// Doesn't exist yet, add it
-			Flight newObj = new Flight(flightNum, flightSeats, flightPrice);
-			writeData(xid, newObj.getKey(), newObj);
-			Trace.info("RM::addFlight(" + xid + ") created new flight " + flightNum + ", seats=" + flightSeats + ", price=$" + flightPrice);
-		}
-		else
-		{
-			// Add seats to existing flight and update the price if greater than zero
-			curObj.setCount(curObj.getCount() + flightSeats);
-			if (flightPrice > 0)
-			{
-				curObj.setPrice(flightPrice);
+			if (lManager.Lock(xid, String.valueOf(flightNum), TransactionLockObject.LockType.LOCK_WRITE)) {
+				Trace.info("RM::addFlight(" + xid + ", " + flightNum + ", " + flightSeats + ", $" + flightPrice + ") called");
+				Flight curObj = (Flight) readData(xid, Flight.getKey(flightNum));
+				if (curObj == null) {
+					// Doesn't exist yet, add it
+					Flight newObj = new Flight(flightNum, flightSeats, flightPrice);
+					writeData(xid, newObj.getKey(), newObj);
+					Trace.info("RM::addFlight(" + xid + ") created new flight " + flightNum + ", seats=" + flightSeats + ", price=$" + flightPrice);
+				} else {
+					// Add seats to existing flight and update the price if greater than zero
+					curObj.setCount(curObj.getCount() + flightSeats);
+					if (flightPrice > 0) {
+						curObj.setPrice(flightPrice);
+					}
+					writeData(xid, curObj.getKey(), curObj);
+					Trace.info("RM::addFlight(" + xid + ") modified existing flight " + flightNum + ", seats=" + curObj.getCount() + ", price=$" + flightPrice);
+				}
+				return true;
+			} else {
+				System.out.println("The input arguments for the lock is wrong, lock can't be granted. ");
+				return false;
 			}
-			writeData(xid, curObj.getKey(), curObj);
-			Trace.info("RM::addFlight(" + xid + ") modified existing flight " + flightNum + ", seats=" + curObj.getCount() + ", price=$" + flightPrice);
 		}
-		return true;
+		catch(DeadlockException deadlock){
+			throw deadlock;
+	}
 	}
 
 	// Create a new car location or add cars to an existing location

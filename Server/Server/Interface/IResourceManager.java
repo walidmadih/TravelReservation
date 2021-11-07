@@ -6,6 +6,7 @@ import java.rmi.RemoteException;
 import java.util.*;
 
 import Server.Common.RMHashMap;
+import Server.LockManager.DeadlockException;
 
 /** 
  * Simplified version from CSE 593 Univ. of Washington
@@ -36,7 +37,7 @@ public interface IResourceManager extends Remote
      * @return Success
      */
     public boolean addFlight(int id, int flightNum, int flightSeats, int flightPrice) 
-	throws RemoteException;
+	throws RemoteException, DeadlockException;
     
     /**
      * Add car at a location.
@@ -211,6 +212,9 @@ public interface IResourceManager extends Remote
     public boolean bundle(int id, int customerID, Vector<String> flightNumbers, String location, boolean car, boolean room)
 	throws RemoteException; 
 
+    public void Commit();
+
+    public void abort();
     /**
      * Convenience for probing the resource manager.
      *
