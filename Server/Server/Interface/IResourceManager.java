@@ -26,6 +26,21 @@ import Server.LockManager.DeadlockException;
 
 public interface IResourceManager extends Remote 
 {
+    public class TransactionAbortedException extends Exception {
+        public TransactionAbortedException(){}
+    
+        public TransactionAbortedException(String message){
+            super(message);
+        }
+    }
+    
+    public class InvalidTransactionException extends Exception {
+        public InvalidTransactionException(){}
+    
+        public InvalidTransactionException(String message){
+            super(message);
+        }
+    }
     /**
      * Add seats to a flight.
      *
@@ -222,4 +237,16 @@ public interface IResourceManager extends Remote
      */
     public String getName()
         throws RemoteException;
+
+    
+    public int start()
+    throws RemoteException;
+
+    public boolean commit(int transactionId)
+    throws RemoteException, TransactionAbortedException, InvalidTransactionException;
+
+    public void abort(int transactionId)
+    throws RemoteException, InvalidTransactionException;
+
+    public boolean shutdown() throws RemoteException;
 }
