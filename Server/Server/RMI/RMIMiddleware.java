@@ -1,5 +1,6 @@
 package Server.RMI;
 
+import Server.Common.ResourceManager;
 import Server.Interface.IResourceManager;
 import Server.Common.Customer;
 import Server.Common.RMHashMap;
@@ -11,6 +12,9 @@ import java.rmi.registry.Registry;
 import java.rmi.RemoteException;
 import java.rmi.NotBoundException;
 import java.rmi.server.UnicastRemoteObject;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Vector;
 import java.util.concurrent.*;
 
@@ -20,7 +24,8 @@ public class RMIMiddleware implements IResourceManager{
     private IResourceManager manager_Flights = null;
     private IResourceManager manager_Cars = null;
     private IResourceManager manager_Rooms = null;
-
+    private int transactionID = 0;
+    private HashMap<Integer, List<IResourceManager>> trans_active = new HashMap();
     public static void main(String args[]){
         String host1 = args[0];
         String host2 = args[1];
@@ -114,18 +119,44 @@ public class RMIMiddleware implements IResourceManager{
         }
     }
 
-    public boolean addFlight(int id, int flightNum, int flightSeats, int flightPrice) throws RemoteException,DeadlockException{
+    public boolean addFlight(int id, int flightNum, int flightSeats, int flightPrice) throws RemoteException,TransactionAbortedException,InvalidTransactionException{
         try {
+            if(!trans_active.containsKey(id)){
+                throw new InvalidTransactionException();
+            }
+            if(!trans_active.get(id).contains(this.manager_Flights)){
+                trans_active.get(id).add(this.manager_Flights);
+            };
             return manager_Flights.addFlight(id, flightNum, flightSeats, flightPrice);
         }
-        catch(DeadlockException deadlock){
-            this.abort();
-            throw TransactionAbortedException;
+        catch(TransactionAbortedException e){
+            List<IResourceManager> RM_used = trans_active.get(id);
+            for(IResourceManager RM:RM_used){
+                RM.abort(id);
+            }
+            trans_active.remove(id);
+            throw e;
         }
     }
 
-    public boolean addCars(int id, String location, int numCars, int price) throws RemoteException{
-        return manager_Cars.addCars(id, location, numCars, price);
+    public boolean addCars(int id, String location, int numCars, int price) throws RemoteException,TransactionAbortedException,InvalidTransactionException{
+        try {
+            if(!trans_active.containsKey(id)){
+                throw new InvalidTransactionException();
+            }
+            if(!trans_active.get(id).contains(this.manager_Cars)){
+                trans_active.get(id).add(this.manager_Cars);
+            };
+            return manager_Cars.addCars(id, location, numCars, price);
+        }
+        catch(TransactionAbortedException e){
+            List<IResourceManager> RM_used = trans_active.get(id);
+            for(IResourceManager RM:RM_used){
+                RM.abort(id);
+            }
+            trans_active.remove(id);
+            throw e;
+        }
     }
 
     public boolean addRooms(int id, String location, int numRooms, int price) throws RemoteException{
@@ -314,8 +345,10 @@ public class RMIMiddleware implements IResourceManager{
 
     @Override
     public int start() throws RemoteException {
-        // TODO Auto-generated method stub
-        return 0;
+        transactionID++;
+        List<IResourceManager> RM_used = new ArrayList<>();
+        trans_active.put(transactionID,RM_used);
+        return transactionID;
     }
 
     @Override

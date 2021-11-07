@@ -156,7 +156,7 @@ public class ResourceManager implements IResourceManager
 
 	// Create a new flight, or add seats to existing flight
 	// NOTE: if flightPrice <= 0 and the flight already exists, it maintains its current price
-	public boolean addFlight(int xid, int flightNum, int flightSeats, int flightPrice) throws RemoteException,DeadlockException
+	public boolean addFlight(int xid, int flightNum, int flightSeats, int flightPrice) throws RemoteException,TransactionAbortedException
 	{
 		try {
 			if (lManager.Lock(xid, String.valueOf(flightNum), TransactionLockObject.LockType.LOCK_WRITE)) {
@@ -183,35 +183,42 @@ public class ResourceManager implements IResourceManager
 			}
 		}
 		catch(DeadlockException deadlock){
-			throw deadlock;
+			throw new TransactionAbortedException();
 	}
 	}
 
 	// Create a new car location or add cars to an existing location
 	// NOTE: if price <= 0 and the location already exists, it maintains its current price
-	public boolean addCars(int xid, String location, int count, int price) throws RemoteException
+	public boolean addCars(int xid, String location, int count, int price) throws RemoteException,TransactionAbortedException
 	{
-		Trace.info("RM::addCars(" + xid + ", " + location + ", " + count + ", $" + price + ") called");
-		Car curObj = (Car)readData(xid, Car.getKey(location));
-		if (curObj == null)
-		{
-			// Car location doesn't exist yet, add it
-			Car newObj = new Car(location, count, price);
-			writeData(xid, newObj.getKey(), newObj);
-			Trace.info("RM::addCars(" + xid + ") created new location " + location + ", count=" + count + ", price=$" + price);
-		}
-		else
-		{
-			// Add count to existing car location and update price if greater than zero
-			curObj.setCount(curObj.getCount() + count);
-			if (price > 0)
-			{
-				curObj.setPrice(price);
+		try {
+			if(lManager.Lock(xid,location, TransactionLockObject.LockType.LOCK_WRITE)) {
+				Trace.info("RM::addCars(" + xid + ", " + location + ", " + count + ", $" + price + ") called");
+				Car curObj = (Car) readData(xid, Car.getKey(location));
+				if (curObj == null) {
+					// Car location doesn't exist yet, add it
+					Car newObj = new Car(location, count, price);
+					writeData(xid, newObj.getKey(), newObj);
+					Trace.info("RM::addCars(" + xid + ") created new location " + location + ", count=" + count + ", price=$" + price);
+				} else {
+					// Add count to existing car location and update price if greater than zero
+					curObj.setCount(curObj.getCount() + count);
+					if (price > 0) {
+						curObj.setPrice(price);
+					}
+					writeData(xid, curObj.getKey(), curObj);
+					Trace.info("RM::addCars(" + xid + ") modified existing location " + location + ", count=" + curObj.getCount() + ", price=$" + price);
+				}
+				return true;
 			}
-			writeData(xid, curObj.getKey(), curObj);
-			Trace.info("RM::addCars(" + xid + ") modified existing location " + location + ", count=" + curObj.getCount() + ", price=$" + price);
+			else{
+				System.out.println("The input arguments for the lock is wrong, lock can't be granted. ");
+				return false;
+			}
 		}
-		return true;
+		catch(DeadlockException deadlock){
+			throw new TransactionAbortedException();
+		}
 	}
 
 	// Create a new room location or add rooms to an existing location
