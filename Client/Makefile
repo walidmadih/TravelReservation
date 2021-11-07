@@ -12,9 +12,10 @@ FORCE: ;
 	make -C ../Server/ RMIInterface.jar
 
 compile-client: ../Server/RMIInterface.jar
-	javac -cp ../Server/RMIInterface.jar Client/*.java
+	javac -cp ../Server/RMIInterface.jar Client/*.java Client/DataGatherer/*.java
 
 clean:
 	rm -f Client/*.class
+	rm -f Client/DataGatherer/*.class
 	rm -f ../Server/RMIInterface.jar
 	rm -f java.policy

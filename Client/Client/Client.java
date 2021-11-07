@@ -3,6 +3,7 @@ package Client;
 import Server.Interface.*;
 
 import java.util.*;
+
 import java.io.*;
 import java.rmi.RemoteException;
 import java.rmi.ConnectException;
@@ -67,7 +68,15 @@ public abstract class Client
 		}
 	}
 
-	public void execute(Command cmd, Vector<String> arguments) throws RemoteException, NumberFormatException
+	public int startTransaction() throws RemoteException{
+		return m_resourceManager.start();
+	}
+
+	public void execute(Command cmd, Vector<String> arguments) throws RemoteException, NumberFormatException{
+		execute(cmd, arguments, new TransactionTimer());
+	}
+
+	public void execute(Command cmd, Vector<String> arguments, TransactionTimer timer) throws RemoteException, NumberFormatException
 	{
 		switch (cmd)
 		{

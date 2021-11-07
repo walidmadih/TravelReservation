@@ -67,17 +67,17 @@ public class RMIClient extends Client
 
 	public void connectServer()
 	{
-		connectServer(s_serverHost, s_serverPort, s_serverName);
+		connectServer(s_serverHost, s_serverPort, s_serverName, s_rmiPrefix);
 	}
 
-	public void connectServer(String server, int port, String name)
+	public void connectServer(String server, int port, String name, String rmi_prefix)
 	{
 		try {
 			boolean first = true;
 			while (true) {
 				try {
 					Registry registry = LocateRegistry.getRegistry(server, port);
-					m_resourceManager = (IResourceManager)registry.lookup(s_rmiPrefix + name);
+					m_resourceManager = (IResourceManager)registry.lookup(rmi_prefix + name);
 					System.out.println("Connected to '" + name + "' server [" + server + ":" + port + "/" + s_rmiPrefix + name + "]");
 					break;
 				}

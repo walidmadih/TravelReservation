@@ -296,5 +296,30 @@ public class RMIMiddleware implements IResourceManager{
         return server_name;
     }
 
+    @Override
+    public int start() throws RemoteException {
+        // TODO Auto-generated method stub
+        return 0;
+    }
+
+    @Override
+    public boolean commit(int transactionId)
+            throws RemoteException, TransactionAbortedException, InvalidTransactionException {
+        // TODO Auto-generated method stub
+        return false;
+    }
+
+    @Override
+    public void abort(int transactionId) throws RemoteException, InvalidTransactionException {
+        // TODO Auto-generated method stub
+        
+    }
+
+    @Override
+    public boolean shutdown() throws RemoteException {
+        // TODO Auto-generated method stub
+        return false;
+    }
+
 
 }
