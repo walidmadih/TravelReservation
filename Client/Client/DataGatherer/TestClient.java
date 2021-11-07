@@ -52,10 +52,15 @@ public class TestClient extends RMIClient implements Runnable
                 int upper = aTransactionInterval + aTransactionIntervalVariation;
                 int lower = aTransactionInterval - aTransactionIntervalVariation;
                 int targetTime = (int) (Math.random() * (upper - lower)) + lower;;
-                int transactionTime = (int) System.currentTimeMillis();
-                int sleepTime = Math.max(targetTime - transactionTime, 0);
+                int transactionStartTime = (int) System.currentTimeMillis();
 
-                
+                // TODO: Use transaction timer instead to calculate transaction time
+                Transaction transaction = new Transaction(OperationGenerator.generateRandomOperations(), this);
+                transaction.start();
+                int transactionEndTime = (int) System.currentTimeMillis();
+
+                int sleepTime = Math.max(targetTime - (transactionEndTime - transactionStartTime), 0);
+
                 try{
                     Thread.sleep(sleepTime);
                 } catch(InterruptedException e){

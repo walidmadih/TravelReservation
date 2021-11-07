@@ -22,7 +22,7 @@ public class Operation{
     }
 
     public void setXid(int xid){
-        aArguments.add(0, String.valueOf(xid));
+        aArguments.insertElementAt(String.valueOf(xid), 1);
     }
 
     public void setTimer(TransactionTimer timer){
@@ -31,6 +31,16 @@ public class Operation{
 
     public Operation copy(){
         return new Operation(this.aCommand, this.aArguments);
+    }
+
+    @Override
+    public String toString(){
+        String args = "";
+        for(String s: aArguments){
+            args += s + ",";
+        }
+        args = args.substring(0, args.length() - 1);
+        return String.format("Command: %s\t\tArguments:%s", aCommand.name(), args);
     }
     
 }

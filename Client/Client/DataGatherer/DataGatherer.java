@@ -6,8 +6,8 @@ import java.util.ArrayList;
 public class DataGatherer{
 
     private static String aHost = "localhost";
-	private static int aPort = 2034;
 	private static String aServerName = "Middleware";
+	private static int aPort = 2034;
     // Desired total throughput per second
     private static int aThroughput = 2;
     // Desired number of clients
@@ -43,11 +43,7 @@ public class DataGatherer{
             aClientCount = Integer.parseInt(args[4]);
         }
 
-        if (args.length > 5){
-            aClientCount = Integer.parseInt(args[4]);
-        }
-
-        int clientTransactionInterval = aThroughput / aClientCount;
+        int clientTransactionInterval = (1000 * aClientCount / aThroughput);
 
         ArrayList<TestClient> clients = new ArrayList<>();
         ArrayList<Thread> threads = new ArrayList<>();
