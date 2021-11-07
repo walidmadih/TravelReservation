@@ -1,7 +1,6 @@
 package Client;
 
 import Server.Interface.*;
-import Server.LockManager.DeadlockException;
 
 import java.util.*;
 import java.io.*;
@@ -68,7 +67,7 @@ public abstract class Client
 		}
 	}
 
-	public void execute(Command cmd, Vector<String> arguments) throws RemoteException, NumberFormatException, DeadlockException
+	public void execute(Command cmd, Vector<String> arguments) throws RemoteException, NumberFormatException
 	{
 		switch (cmd)
 		{

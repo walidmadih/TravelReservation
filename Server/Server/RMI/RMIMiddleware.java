@@ -3,7 +3,6 @@ package Server.RMI;
 import Server.Interface.IResourceManager;
 import Server.Common.Customer;
 import Server.Common.RMHashMap;
-import Server.LockManager.DeadlockException;
 
 import java.rmi.Remote;
 import java.rmi.registry.LocateRegistry;
@@ -114,7 +113,7 @@ public class RMIMiddleware implements IResourceManager{
         }
     }
 
-    public boolean addFlight(int id, int flightNum, int flightSeats, int flightPrice) throws RemoteException,DeadlockException{
+    public boolean addFlight(int id, int flightNum, int flightSeats, int flightPrice) throws RemoteException{
         final Callable<Boolean> addFlight = new Callable<Boolean>() {
             @Override
             public Boolean call() throws Exception {
@@ -135,8 +134,8 @@ public class RMIMiddleware implements IResourceManager{
             /* Handle the error. Or ignore it. */
 
         } catch (TimeoutException e) {
-            DeadlockException exception = new DeadlockException(id,"Abort transaction "+id);
-            throw exception;
+//            DeadlockException exception = new DeadlockException(id,"Abort transaction "+id);
+//            throw exception;
         }
         return false;
     }
