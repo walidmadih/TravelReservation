@@ -135,7 +135,7 @@ public class RMIMiddleware implements IResourceManager{
 
         } catch (TimeoutException e) {
 //            DeadlockException exception = new DeadlockException(id,"Abort transaction "+id);
-//            throw exception;
+              System.out.println("TonyWanghaha");
         }
         return false;
     }
