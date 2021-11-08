@@ -14,10 +14,10 @@ RMIInterface.jar: Server/Interface/* Server/Common/RMHashMap.java
 	javac Server/Common/RMHashMap.java
 	jar cvf RMIInterface.jar Server/Interface/*.class Server/Common/RMHashMap.class
 
-compile-server-rmi: Server/RMI/*.java Server/Interface/* Server/Common/*.java
-	javac Server/RMI/*.java Server/Interface/*.java Server/Common/*.java
+compile-server-rmi: Server/RMI/*.java Server/Interface/* Server/Common/*.java Server/LockManager/*.java
+	javac Server/RMI/*.java Server/Interface/*.java Server/Common/*.java Server/LockManager/*.java
 
 clean:
 	rm -f Server/Interface/*.class Server/Common/*.class Server/RMI/*.class
 	rm -f RMIInterface.jar
-	rm -f java.policy 
+	rm -f java.policy

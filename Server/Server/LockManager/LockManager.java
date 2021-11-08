@@ -1,6 +1,7 @@
 package Server.LockManager;
 
 import Server.Common.*;
+import Server.LockManager.TransactionLockObject.LockType;
 
 import java.util.BitSet;
 import java.util.Vector;
@@ -63,8 +64,14 @@ public class LockManager
 						}
 
 						if (bConvert.get(0) == true) {
-							//TODO: Lock conversion 
-							// Trace.info("LM::lock(" + xid + ", " + data + ", " + lockType + ") converted");
+							
+							TransactionLockObject oldXLock = (TransactionLockObject) lockTable.get(new TransactionLockObject(xid, data, LockType.LOCK_READ));
+							DataLockObject oldDataLock = (DataLockObject) lockTable.get(new DataLockObject(xid, data, LockType.LOCK_READ));
+
+							oldXLock.setLockType(LockType.LOCK_WRITE);
+							oldDataLock.setLockType(LockType.LOCK_WRITE);
+
+							Trace.info("LM::lock(" + xid + ", " + data + ", " + lockType + ") converted");
 						} else {
 							// Lock request that is not lock conversion
 							this.lockTable.add(xLockObject);
@@ -227,7 +234,11 @@ public class LockManager
 					// (2) transaction already had a WRITE lock
 					// Seeing the comments at the top of this function might be helpful
 
-					//TODO: Lock conversion
+					if (l_dataLockObject.getLockType() == TransactionLockObject.LockType.LOCK_READ)
+						bitset.set(0);
+
+					else
+						throw new RedundantLockRequestException(dataLockObject.getXId(), "redundant WRITE lock request");
 				}
 			} 
 			else if (dataLockObject.getLockType() == TransactionLockObject.LockType.LOCK_READ)
@@ -240,7 +251,7 @@ public class LockManager
 					return true;
 				}
 			}
-		       	else if (dataLockObject.getLockType() == TransactionLockObject.LockType.LOCK_WRITE)
+		    else if (dataLockObject.getLockType() == TransactionLockObject.LockType.LOCK_WRITE)
 			{
 				// Transaction is requesting a WRITE lock and some other transaction has either
 				// a READ or a WRITE lock on it ==> conflict
@@ -296,7 +307,7 @@ public class LockManager
 		// Suspend thread and wait until notified
 		synchronized (this.waitTable) {
 			if (!this.waitTable.contains(waitLockObject))
-		       	{
+		    {
 				// Register this transaction in the waitTable if it is not already there 
 				this.waitTable.add(waitLockObject);
 			}
