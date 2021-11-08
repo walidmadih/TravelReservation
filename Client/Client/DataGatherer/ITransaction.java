@@ -8,6 +8,6 @@ public interface ITransaction{
     
     public int getTotalCount();
     public int start()
-    throws RemoteException, IResourceManager.TransactionAbortedException, IResourceManager.InvalidTransactionException;
+    throws RemoteException, IResourceManager.TransactionAbortedException, IResourceManager.InvalidTransactionException, IResourceManager.TransactionAlreadyWaitingException;
 
 }

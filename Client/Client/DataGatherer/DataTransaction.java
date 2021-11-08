@@ -5,6 +5,7 @@ import java.util.List;
 
 import Client.Client;
 import Server.Interface.IResourceManager.TransactionAbortedException;
+import Server.Interface.IResourceManager.TransactionAlreadyWaitingException;
 import Server.Interface.IResourceManager.InvalidTransactionException;
 public class DataTransaction implements ITransaction{
     private final Transaction aTransaction;
@@ -22,7 +23,7 @@ public class DataTransaction implements ITransaction{
         return aTransaction.getTotalCount();
     }
 
-    public int start() throws RemoteException,TransactionAbortedException,InvalidTransactionException{
+    public int start() throws RemoteException,TransactionAbortedException,InvalidTransactionException,TransactionAlreadyWaitingException{
         long startTime = System.currentTimeMillis();
         int xid = aTransaction.start();
         long endTime = System.currentTimeMillis();

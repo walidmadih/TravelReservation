@@ -8,7 +8,7 @@ package Server.Common;
 import Server.Interface.*;
 import Server.LockManager.DeadlockException;
 import Server.LockManager.LockManager;
-import Server.LockManager.TransactionLockObject;
+import Server.LockManager.TransactionLockObject.LockType;
 
 import java.util.*;
 import java.rmi.RemoteException;
@@ -20,6 +20,7 @@ public class ResourceManager implements IResourceManager
 	protected String m_name = "";
 	protected RMHashMap m_data = new RMHashMap();
 	private LockManager lManager = new LockManager();
+	private HashMap<Integer, Vector<Snapshot>> abortInfo = new HashMap<Integer, Vector<Snapshot>>();
 
 	public ResourceManager(String p_name)
 	{
@@ -149,12 +150,13 @@ public class ResourceManager implements IResourceManager
 
 	// Create a new flight, or add seats to existing flight
 	// NOTE: if flightPrice <= 0 and the flight already exists, it maintains its current price
-	public boolean addFlight(int xid, int flightNum, int flightSeats, int flightPrice) throws RemoteException,TransactionAbortedException
+	public boolean addFlight(int xid, int flightNum, int flightSeats, int flightPrice) throws RemoteException,TransactionAbortedException,TransactionAlreadyWaitingException
 	{
 		try {
-			if (lManager.Lock(xid, String.valueOf(flightNum), TransactionLockObject.LockType.LOCK_WRITE)) {
+			if (lManager.Lock(xid, Flight.getKey(flightNum), LockType.LOCK_WRITE)) {
 				Trace.info("RM::addFlight(" + xid + ", " + flightNum + ", " + flightSeats + ", $" + flightPrice + ") called");
 				Flight curObj = (Flight) readData(xid, Flight.getKey(flightNum));
+				takeSnapshot(xid, Flight.getKey(flightNum));
 				if (curObj == null) {
 					// Doesn't exist yet, add it
 					Flight newObj = new Flight(flightNum, flightSeats, flightPrice);
@@ -177,17 +179,18 @@ public class ResourceManager implements IResourceManager
 		}
 		catch(DeadlockException deadlock){
 			throw new TransactionAbortedException();
-	}
+		}
 	}
 
 	// Create a new car location or add cars to an existing location
 	// NOTE: if price <= 0 and the location already exists, it maintains its current price
-	public boolean addCars(int xid, String location, int count, int price) throws RemoteException,TransactionAbortedException
+	public boolean addCars(int xid, String location, int count, int price) throws RemoteException,TransactionAbortedException,TransactionAlreadyWaitingException
 	{
 		try {
-			if(lManager.Lock(xid,location, TransactionLockObject.LockType.LOCK_WRITE)) {
+			if(lManager.Lock(xid, Car.getKey(location), LockType.LOCK_WRITE)) {
 				Trace.info("RM::addCars(" + xid + ", " + location + ", " + count + ", $" + price + ") called");
 				Car curObj = (Car) readData(xid, Car.getKey(location));
+				takeSnapshot(xid, Car.getKey(location));
 				if (curObj == null) {
 					// Car location doesn't exist yet, add it
 					Car newObj = new Car(location, count, price);
@@ -216,12 +219,13 @@ public class ResourceManager implements IResourceManager
 
 	// Create a new room location or add rooms to an existing location
 	// NOTE: if price <= 0 and the room location already exists, it maintains its current price
-	public boolean addRooms(int xid, String location, int count, int price) throws RemoteException, TransactionAbortedException
+	public boolean addRooms(int xid, String location, int count, int price) throws RemoteException, TransactionAbortedException,TransactionAlreadyWaitingException
 	{
 		try {
-			if(lManager.Lock(xid,location, TransactionLockObject.LockType.LOCK_WRITE)) {
+			if(lManager.Lock(xid, Room.getKey(location), LockType.LOCK_WRITE)) {
 				Trace.info("RM::addRooms(" + xid + ", " + location + ", " + count + ", $" + price + ") called");
 				Room curObj = (Room) readData(xid, Room.getKey(location));
+				takeSnapshot(xid, Room.getKey(location));
 				if (curObj == null) {
 					// Room location doesn't exist yet, add it
 					Room newObj = new Room(location, count, price);
@@ -249,10 +253,11 @@ public class ResourceManager implements IResourceManager
 	}
 
 	// Deletes flight
-	public boolean deleteFlight(int xid, int flightNum) throws RemoteException,TransactionAbortedException
+	public boolean deleteFlight(int xid, int flightNum) throws RemoteException,TransactionAbortedException,TransactionAlreadyWaitingException
 	{
 		try {
-			if(lManager.Lock(xid,String.valueOf(flightNum), TransactionLockObject.LockType.LOCK_WRITE)) {
+			if(lManager.Lock(xid, Flight.getKey(flightNum), LockType.LOCK_WRITE)) {
+				takeSnapshot(xid, Flight.getKey(flightNum));
 				boolean return_val = deleteItem(xid, Flight.getKey(flightNum));
 				if(!return_val){
 					throw new TransactionAbortedException();
@@ -270,10 +275,11 @@ public class ResourceManager implements IResourceManager
 	}
 
 	// Delete cars at a location
-	public boolean deleteCars(int xid, String location) throws RemoteException,TransactionAbortedException
+	public boolean deleteCars(int xid, String location) throws RemoteException,TransactionAbortedException,TransactionAlreadyWaitingException
 	{
 		try {
-			if(lManager.Lock(xid,location, TransactionLockObject.LockType.LOCK_WRITE)) {
+			if(lManager.Lock(xid, Car.getKey(location), LockType.LOCK_WRITE)) {
+				takeSnapshot(xid, Car.getKey(location));
 				boolean return_val = deleteItem(xid, Car.getKey(location));
 				if(!return_val){
 					throw new TransactionAbortedException();
@@ -291,10 +297,11 @@ public class ResourceManager implements IResourceManager
 	}
 
 	// Delete rooms at a location
-	public boolean deleteRooms(int xid, String location) throws RemoteException,TransactionAbortedException
+	public boolean deleteRooms(int xid, String location) throws RemoteException,TransactionAbortedException,TransactionAlreadyWaitingException
 	{
 		try {
-			if(lManager.Lock(xid,location, TransactionLockObject.LockType.LOCK_WRITE)) {
+			if(lManager.Lock(xid, Room.getKey(location), LockType.LOCK_WRITE)) {
+				takeSnapshot(xid, Room.getKey(location));
 				boolean return_val = deleteItem(xid, Room.getKey(location));
 				if(!return_val){
 					throw new TransactionAbortedException();
@@ -312,10 +319,10 @@ public class ResourceManager implements IResourceManager
 	}
 
 	// Returns the number of empty seats in this flight
-	public int queryFlight(int xid, int flightNum) throws RemoteException,TransactionAbortedException
+	public int queryFlight(int xid, int flightNum) throws RemoteException,TransactionAbortedException,TransactionAlreadyWaitingException
 	{
 		try {
-			if(lManager.Lock(xid,String.valueOf(flightNum), TransactionLockObject.LockType.LOCK_READ)) {
+			if(lManager.Lock(xid, Flight.getKey(flightNum), LockType.LOCK_READ)) {
 				return queryNum(xid, Flight.getKey(flightNum));
 			}
 			else{
@@ -329,10 +336,10 @@ public class ResourceManager implements IResourceManager
 	}
 
 	// Returns the number of cars available at a location
-	public int queryCars(int xid, String location) throws RemoteException,TransactionAbortedException
+	public int queryCars(int xid, String location) throws RemoteException,TransactionAbortedException,TransactionAlreadyWaitingException
 	{
 		try {
-			if(lManager.Lock(xid,location, TransactionLockObject.LockType.LOCK_READ)) {
+			if(lManager.Lock(xid, Car.getKey(location), LockType.LOCK_READ)) {
 				return queryNum(xid, Car.getKey(location));
 			}
 			else{
@@ -346,10 +353,10 @@ public class ResourceManager implements IResourceManager
 	}
 
 	// Returns the amount of rooms available at a location
-	public int queryRooms(int xid, String location) throws RemoteException,TransactionAbortedException
+	public int queryRooms(int xid, String location) throws RemoteException,TransactionAbortedException,TransactionAlreadyWaitingException
 	{
 		try {
-			if(lManager.Lock(xid,location, TransactionLockObject.LockType.LOCK_READ)) {
+			if(lManager.Lock(xid, Room.getKey(location), LockType.LOCK_READ)) {
 				return queryNum(xid, Room.getKey(location));
 			}
 			else{
@@ -363,10 +370,10 @@ public class ResourceManager implements IResourceManager
 	}
 
 	// Returns price of a seat in this flight
-	public int queryFlightPrice(int xid, int flightNum) throws RemoteException,TransactionAbortedException
+	public int queryFlightPrice(int xid, int flightNum) throws RemoteException,TransactionAbortedException,TransactionAlreadyWaitingException
 	{
 		try {
-			if(lManager.Lock(xid,String.valueOf(flightNum), TransactionLockObject.LockType.LOCK_READ)) {
+			if(lManager.Lock(xid, Flight.getKey(flightNum), LockType.LOCK_READ)) {
 				return queryPrice(xid, Flight.getKey(flightNum));
 			}
 			else{
@@ -380,10 +387,10 @@ public class ResourceManager implements IResourceManager
 	}
 
 	// Returns price of cars at this location
-	public int queryCarsPrice(int xid, String location) throws RemoteException,TransactionAbortedException
+	public int queryCarsPrice(int xid, String location) throws RemoteException,TransactionAbortedException,TransactionAlreadyWaitingException
 	{
 		try {
-			if(lManager.Lock(xid,location, TransactionLockObject.LockType.LOCK_READ)) {
+			if(lManager.Lock(xid, Car.getKey(location), LockType.LOCK_READ)) {
 				return queryPrice(xid, Car.getKey(location));
 			}
 			else{
@@ -397,10 +404,10 @@ public class ResourceManager implements IResourceManager
 	}
 
 	// Returns room price at this location
-	public int queryRoomsPrice(int xid, String location) throws RemoteException,TransactionAbortedException
+	public int queryRoomsPrice(int xid, String location) throws RemoteException,TransactionAbortedException,TransactionAlreadyWaitingException
 	{
 		try {
-			if(lManager.Lock(xid,location, TransactionLockObject.LockType.LOCK_READ)) {
+			if(lManager.Lock(xid, Room.getKey(location), LockType.LOCK_READ)) {
 				return queryPrice(xid, Room.getKey(location));
 			}
 			else{
@@ -415,26 +422,15 @@ public class ResourceManager implements IResourceManager
 
 	public RMHashMap queryCustomerReservations(int xid, int customerID) throws RemoteException,TransactionAbortedException
 	{
-		try {
-			if (lManager.Lock(xid, String.valueOf(customerID), TransactionLockObject.LockType.LOCK_READ)) {
-				Trace.info("RM::queryCustomerReservations(" + xid + ", " + customerID + ") called");
-				Customer customer = (Customer) readData(xid, Customer.getKey(customerID));
-				if (customer == null) {
-					Trace.warn("RM::queryCustomerReservations(" + xid + ", " + customerID + ") failed--customer doesn't exist");
-					// NOTE: don't change this--WC counts on this value indicating a customer does not exist...
-					throw new TransactionAbortedException();
-				} else {
-					Trace.info("RM::queryCustomerReservations(" + xid + ", " + customerID + ") succeeded.");
-					return customer.getReservations();
-				}
-			}
-			else{
-				System.out.println("The input arguments for the lock is wrong, lock can't be granted. ");
-				throw new TransactionAbortedException();
-			}
-		}
-		catch(DeadlockException deadlock){
+		Trace.info("RM::queryCustomerReservations(" + xid + ", " + customerID + ") called");
+		Customer customer = (Customer) readData(xid, Customer.getKey(customerID));
+		if (customer == null) {
+			Trace.warn("RM::queryCustomerReservations(" + xid + ", " + customerID + ") failed--customer doesn't exist");
+			// NOTE: don't change this--WC counts on this value indicating a customer does not exist...
 			throw new TransactionAbortedException();
+		} else {
+			Trace.info("RM::queryCustomerReservations(" + xid + ", " + customerID + ") succeeded.");
+			return customer.getReservations();
 		}
 	}
 
@@ -446,85 +442,71 @@ public class ResourceManager implements IResourceManager
 
 	public int newCustomer(int xid) throws RemoteException,TransactionAbortedException
 	{
+		// Generate a globally unique ID for the new customer
 		int cid = Integer.parseInt(String.valueOf(xid) +
 				String.valueOf(Calendar.getInstance().get(Calendar.MILLISECOND)) +
 				String.valueOf(Math.round(Math.random() * 100 + 1)));
-		try {
-			if(lManager.Lock(xid,String.valueOf(cid), TransactionLockObject.LockType.LOCK_WRITE)) {
-				Trace.info("RM::newCustomer(" + xid + ") called");
-				// Generate a globally unique ID for the new customer
-				Customer customer = new Customer(cid);
-				writeData(xid, customer.getKey(), customer);
-				Trace.info("RM::newCustomer(" + cid + ") returns ID=" + cid);
-				return cid;
-			}
-			else{
-				System.out.println("The input arguments for the lock is wrong, lock can't be granted. ");
-				return -1;
-			}
-		}
-		catch(DeadlockException deadlock){
-			throw new TransactionAbortedException();
-		}
+		
+		Trace.info("RM::newCustomer(" + xid + ") called");
+		Customer customer = new Customer(cid);
+		writeData(xid, customer.getKey(), customer);
+		Trace.info("RM::newCustomer(" + cid + ") returns ID=" + cid);
+		return cid;
 	}
 
 	public boolean newCustomer(int xid, int customerID) throws RemoteException,TransactionAbortedException
 	{
-		try {
-			if (lManager.Lock(xid, String.valueOf(customerID), TransactionLockObject.LockType.LOCK_WRITE)) {
-				Trace.info("RM::newCustomer(" + xid + ", " + customerID + ") called");
-				Customer customer = (Customer) readData(xid, Customer.getKey(customerID));
-				if (customer == null) {
-					customer = new Customer(customerID);
-					writeData(xid, customer.getKey(), customer);
-					Trace.info("RM::newCustomer(" + xid + ", " + customerID + ") created a new customer");
-					return true;
-				} else {
-					Trace.info("INFO: RM::newCustomer(" + xid + ", " + customerID + ") failed--customer already exists");
-					throw new TransactionAbortedException();
-				}
-			}
-			else{
-				System.out.println("The input arguments for the lock is wrong, lock can't be granted. ");
-				throw new TransactionAbortedException();
-			}
-		}
-		catch(DeadlockException deadlock){
+		Trace.info("RM::newCustomer(" + xid + ", " + customerID + ") called");
+		Customer customer = (Customer) readData(xid, Customer.getKey(customerID));
+		takeSnapshot(xid, Customer.getKey(customerID));
+		if (customer == null) {
+			customer = new Customer(customerID);
+			writeData(xid, customer.getKey(), customer);
+			Trace.info("RM::newCustomer(" + xid + ", " + customerID + ") created a new customer");
+			return true;
+		} else {
+			Trace.info("INFO: RM::newCustomer(" + xid + ", " + customerID + ") failed--customer already exists");
 			throw new TransactionAbortedException();
 		}
 	}
 
-	public boolean deleteCustomer(int xid, int customerID) throws RemoteException,TransactionAbortedException
+	public boolean deleteCustomer(int xid, int customerID) throws RemoteException,TransactionAbortedException,TransactionAlreadyWaitingException
 	{
 		try {
-			if (lManager.Lock(xid, String.valueOf(customerID), TransactionLockObject.LockType.LOCK_WRITE)) {
-				Trace.info("RM::deleteCustomer(" + xid + ", " + customerID + ") called");
-				Customer customer = (Customer) readData(xid, Customer.getKey(customerID));
-				if (customer == null) {
-					Trace.warn("RM::deleteCustomer(" + xid + ", " + customerID + ") failed--customer doesn't exist");
-					throw new TransactionAbortedException();
-				} else {
-					// Increase the reserved numbers of all reservable items which the customer reserved.
-					RMHashMap reservations = customer.getReservations();
-					for (String reservedKey : reservations.keySet()) {
-						ReservedItem reserveditem = customer.getReservedItem(reservedKey);
+			Trace.info("RM::deleteCustomer(" + xid + ", " + customerID + ") called");
+			Customer customer = (Customer) readData(xid, Customer.getKey(customerID));
+			takeSnapshot(xid, Customer.getKey(customerID));
+			if (customer == null) {
+				Trace.warn("RM::deleteCustomer(" + xid + ", " + customerID + ") failed--customer doesn't exist");
+				throw new TransactionAbortedException();
+			} 
+			else 
+			{
+				// Increase the reserved numbers of all reservable items which the customer reserved.
+				RMHashMap reservations = customer.getReservations();
+				for (String reservedKey : reservations.keySet()) {
+					ReservedItem reserveditem = customer.getReservedItem(reservedKey);
+					if (lManager.Lock(xid, reserveditem.getKey(), LockType.LOCK_WRITE))
+					{
 						Trace.info("RM::deleteCustomer(" + xid + ", " + customerID + ") has reserved " + reserveditem.getKey() + " " + reserveditem.getCount() + " times");
 						ReservableItem item = (ReservableItem) readData(xid, reserveditem.getKey());
+						takeSnapshot(xid, reserveditem.getKey());
 						Trace.info("RM::deleteCustomer(" + xid + ", " + customerID + ") has reserved " + reserveditem.getKey() + " which is reserved " + item.getReserved() + " times and is still available " + item.getCount() + " times");
 						item.setReserved(item.getReserved() - reserveditem.getCount());
 						item.setCount(item.getCount() + reserveditem.getCount());
 						writeData(xid, item.getKey(), item);
 					}
-
-					// Remove the customer from the storage
-					removeData(xid, customer.getKey());
-					Trace.info("RM::deleteCustomer(" + xid + ", " + customerID + ") succeeded");
-					return true;
+					else
+					{
+						System.out.println("The input arguments for the lock is wrong, lock can't be granted. ");
+						throw new TransactionAbortedException();
+					}
 				}
-			}
-			else{
-				System.out.println("The input arguments for the lock is wrong, lock can't be granted. ");
-				throw new TransactionAbortedException();
+
+				// Remove the customer from the storage
+				removeData(xid, customer.getKey());
+				Trace.info("RM::deleteCustomer(" + xid + ", " + customerID + ") succeeded");
+				return true;
 			}
 		}
 		catch(DeadlockException deadlock){
@@ -534,10 +516,12 @@ public class ResourceManager implements IResourceManager
 
 
 	// Adds flight reservation to this customer
-	public boolean reserveFlight(int xid, int customerID, int flightNum) throws RemoteException,TransactionAbortedException
+	public boolean reserveFlight(int xid, int customerID, int flightNum) throws RemoteException,TransactionAbortedException,TransactionAlreadyWaitingException
 	{
 		try {
-			if(lManager.Lock(xid,String.valueOf(customerID), TransactionLockObject.LockType.LOCK_WRITE) && lManager.Lock(xid,String.valueOf(flightNum), TransactionLockObject.LockType.LOCK_WRITE) ) {
+			if(lManager.Lock(xid, Flight.getKey(flightNum), LockType.LOCK_WRITE) ) {
+				takeSnapshot(xid, Flight.getKey(flightNum));
+				takeSnapshot(xid, Customer.getKey(customerID));
 				boolean return_val = reserveItem(xid, customerID, Flight.getKey(flightNum), String.valueOf(flightNum));
 				if(!return_val){
 					throw new TransactionAbortedException();
@@ -555,10 +539,12 @@ public class ResourceManager implements IResourceManager
 	}
 
 	// Adds car reservation to this customer
-	public boolean reserveCar(int xid, int customerID, String location) throws RemoteException,TransactionAbortedException
+	public boolean reserveCar(int xid, int customerID, String location) throws RemoteException,TransactionAbortedException,TransactionAlreadyWaitingException
 	{
 		try {
-			if(lManager.Lock(xid,String.valueOf(customerID), TransactionLockObject.LockType.LOCK_WRITE) && lManager.Lock(xid,location, TransactionLockObject.LockType.LOCK_WRITE) ) {
+			if(lManager.Lock(xid, Car.getKey(location), LockType.LOCK_WRITE) ) {
+				takeSnapshot(xid, Car.getKey(location));
+				takeSnapshot(xid, Customer.getKey(customerID));
 				boolean return_val = reserveItem(xid, customerID, Car.getKey(location), location);
 				if(!return_val){
 					throw new TransactionAbortedException();
@@ -576,10 +562,12 @@ public class ResourceManager implements IResourceManager
 	}
 
 	// Adds room reservation to this customer
-	public boolean reserveRoom(int xid, int customerID, String location) throws RemoteException,TransactionAbortedException
+	public boolean reserveRoom(int xid, int customerID, String location) throws RemoteException,TransactionAbortedException,TransactionAlreadyWaitingException
 	{
 		try {
-			if(lManager.Lock(xid,String.valueOf(customerID), TransactionLockObject.LockType.LOCK_WRITE) && lManager.Lock(xid,location, TransactionLockObject.LockType.LOCK_WRITE) ) {
+			if(lManager.Lock(xid, Room.getKey(location), LockType.LOCK_WRITE) ) {
+				takeSnapshot(xid, Room.getKey(location));
+				takeSnapshot(xid, Customer.getKey(customerID));
 				boolean return_val = reserveItem(xid, customerID, Room.getKey(location), location);
 				if(!return_val){
 					throw new TransactionAbortedException();
@@ -607,29 +595,84 @@ public class ResourceManager implements IResourceManager
 		return m_name;
 	}
 
-	@Override
+	public void requestCustomerLock(int id, int customerID, LockType lockType) throws RemoteException, TransactionAbortedException, TransactionAlreadyWaitingException
+	{
+		try
+		{
+			if(!lManager.Lock(id, Customer.getKey(customerID), lockType))
+			{
+				System.out.println("The input arguments for the lock is wrong, lock can't be granted. ");
+				throw new TransactionAbortedException();
+			}
+		}
+		catch (DeadlockException deadlock){
+			throw new TransactionAbortedException();
+		}
+	}
+
+	private void takeSnapshot(int xid, String key)
+	{
+		RMItem item = readData(xid, key);
+
+		if (abortInfo.containsKey(xid))
+		{
+			Vector<Snapshot> vect = abortInfo.get(xid);
+			Snapshot snap = new Snapshot(key, item);
+			if (!vect.contains(snap))
+				vect.add(snap);
+		}
+
+		else
+		{
+			Vector<Snapshot> vect = new Vector<Snapshot>();
+			vect.add(new Snapshot(key, item));
+			abortInfo.put(xid, vect);
+		}
+	}
+
+	//Only implemented in the middleware layer, will not be called in the RM layer
 	public int start() throws RemoteException {
-		// TODO Auto-generated method stub
 		return 0;
 	}
 
 	@Override
-	public boolean commit(int transactionId)
-			throws RemoteException, TransactionAbortedException, InvalidTransactionException {
-		// TODO Auto-generated method stub
-		return false;
+	public boolean commit(int transactionId) throws RemoteException {
+		
+		//Release all locks taken by this transaction
+		lManager.UnlockAll(transactionId);
+		//Clean the snapshots taken before writing
+		abortInfo.remove(transactionId);
+		return true;
 	}
 
 	@Override
-	public void abort(int transactionId) throws RemoteException, InvalidTransactionException {
-		// TODO Auto-generated method stub
+	public void abort(int transactionId) throws RemoteException {
 		
+		Trace.info("RM::abort(" + transactionId + ") called");
+
+		Vector<Snapshot> vect = abortInfo.get(transactionId);
+
+		if (vect != null)
+		{
+			for (Snapshot snap : vect)
+			{
+				if (snap.getItem() == null)
+					removeData(transactionId, snap.getItemKey());
+				else
+					writeData(transactionId, snap.getItemKey(), snap.getItem());
+			}
+		}
+
+		lManager.cleanupAbortedTransaction(transactionId);
+		lManager.UnlockAll(transactionId);
+		
+		Trace.info("RM::abort(" + transactionId + ") completed successfully");
 	}
 
 	@Override
 	public boolean shutdown() throws RemoteException {
-		// TODO Auto-generated method stub
-		return false;
+		System.exit(0);
+		return true;
 	}
 }
  
