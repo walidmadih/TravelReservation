@@ -21,4 +21,4 @@ compile-server-rmi: Server/RMI/*.java Server/Interface/* Server/Common/*.java Se
 clean:
 	rm -f Server/Interface/*.class Server/Common/*.class Server/RMI/*.class Server/LockManager/*.class
 	rm -f RMIInterface.jar
-	rm -f java.policy 
+	rm -f java.policy
