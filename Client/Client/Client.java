@@ -94,6 +94,13 @@ public abstract class Client
 				}
 				break;
 			}
+			case Start:
+			{
+				checkArgumentsCount(1,arguments.size());
+				int trans_id = m_resourceManager.start();
+				System.out.println("Your transaction id is"+trans_id);
+				break;
+			}
 			case AddFlight: {
 				checkArgumentsCount(5, arguments.size());
 
