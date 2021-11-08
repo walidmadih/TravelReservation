@@ -9,6 +9,8 @@ import java.rmi.RemoteException;
 import java.rmi.ConnectException;
 import java.rmi.ServerException;
 import java.rmi.UnmarshalException;
+import Server.Interface.IResourceManager.TransactionAbortedException;
+import Server.Interface.IResourceManager.InvalidTransactionException;
 
 public abstract class Client
 {
@@ -76,7 +78,7 @@ public abstract class Client
 		execute(cmd, arguments, new TransactionTimer());
 	}
 
-	public void execute(Command cmd, Vector<String> arguments, TransactionTimer timer) throws RemoteException, NumberFormatException
+	public void execute(Command cmd, Vector<String> arguments, TransactionTimer timer) throws RemoteException, NumberFormatException,
 	{
 		switch (cmd)
 		{

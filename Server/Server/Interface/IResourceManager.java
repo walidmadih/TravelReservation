@@ -227,9 +227,6 @@ public interface IResourceManager extends Remote
     public boolean bundle(int id, int customerID, Vector<String> flightNumbers, String location, boolean car, boolean room)
 	throws RemoteException,TransactionAbortedException,InvalidTransactionException;
 
-    public void Commit();
-
-    public void abort();
     /**
      * Convenience for probing the resource manager.
      *
