@@ -4,7 +4,8 @@ import java.rmi.RemoteException;
 import java.util.List;
 
 import Client.Client;
-
+import Server.Interface.IResourceManager.TransactionAbortedException;
+import Server.Interface.IResourceManager.InvalidTransactionException;
 public class DataTransaction implements ITransaction{
     private final Transaction aTransaction;
     private final DataPoint aDataPoint = new DataPoint();
@@ -21,7 +22,7 @@ public class DataTransaction implements ITransaction{
         return aTransaction.getTotalCount();
     }
 
-    public int start() throws RemoteException{
+    public int start() throws RemoteException,TransactionAbortedException,InvalidTransactionException{
         long startTime = System.currentTimeMillis();
         int xid = aTransaction.start();
         long endTime = System.currentTimeMillis();
