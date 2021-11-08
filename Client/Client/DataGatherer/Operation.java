@@ -6,6 +6,8 @@ import java.util.Vector;
 import Client.Client;
 import Client.Command;
 import Server.Interface.TransactionTimer;
+import Server.Interface.IResourceManager.TransactionAbortedException;
+import Server.Interface.IResourceManager.InvalidTransactionException;
 
 public class Operation{
 
@@ -17,7 +19,7 @@ public class Operation{
         aArguments = new Vector<String>(pArguments);
     }
 
-    public void executeOnClient(Client pClient) throws RemoteException{
+    public void executeOnClient(Client pClient) throws RemoteException,TransactionAbortedException,InvalidTransactionException{
         pClient.execute(aCommand, aArguments);
     }
 
