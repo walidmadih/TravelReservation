@@ -1,16 +1,28 @@
 package Server.RMI;
 
+import Server.Common.ResourceManager;
 import Server.Interface.IResourceManager;
+import Server.Interface.IResourceManager.InvalidTransactionException;
+import Server.Interface.IResourceManager.TransactionAlreadyWaitingException;
 import Server.Common.Customer;
 import Server.Common.RMHashMap;
+import Server.LockManager.DeadlockException;
+import Server.LockManager.LockManager;
+import Server.LockManager.TransactionLockObject.LockType;
 
+import java.rmi.AccessException;
 import java.rmi.Remote;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.RemoteException;
 import java.rmi.NotBoundException;
 import java.rmi.server.UnicastRemoteObject;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Vector;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class RMIMiddleware implements IResourceManager{
 
@@ -18,7 +30,11 @@ public class RMIMiddleware implements IResourceManager{
     private IResourceManager manager_Flights = null;
     private IResourceManager manager_Cars = null;
     private IResourceManager manager_Rooms = null;
-
+    private AtomicInteger transactionID = new AtomicInteger(0);
+    private AtomicInteger customerIDGenerator = new AtomicInteger(0);
+    private HashMap<Integer, List<IResourceManager>> trans_active = new HashMap();
+    private HashMap<Integer,Long> time_to_live = new HashMap();
+    private long TTL = 15000;
     public static void main(String args[]){
         String host1 = args[0];
         String host2 = args[1];
@@ -112,51 +128,310 @@ public class RMIMiddleware implements IResourceManager{
         }
     }
 
-    public boolean addFlight(int id, int flightNum, int flightSeats, int flightPrice) throws RemoteException{
-        return manager_Flights.addFlight(id,flightNum,flightSeats,flightPrice);
+    public boolean addFlight(int id, int flightNum, int flightSeats, int flightPrice) throws RemoteException,TransactionAbortedException,InvalidTransactionException,TransactionAlreadyWaitingException{
+        try {
+            long time = System.currentTimeMillis();
+            checkTTL(time);
+            if(!trans_active.containsKey(id)) {
+                throw new InvalidTransactionException();
+            }
+            time_to_live.replace(id,time);
+
+            addRMToActiveTransaction(id, true, false, false);
+
+            return manager_Flights.addFlight(id, flightNum, flightSeats, flightPrice);
+        }
+        catch(TransactionAbortedException e){
+            List<IResourceManager> RM_used = trans_active.get(id);
+
+            if (RM_used != null){
+
+                for(IResourceManager RM:RM_used){
+                    RM.abort(id);
+                }
+                trans_active.remove(id);
+                time_to_live.remove(id);
+            }
+            throw e;
+        }
     }
 
-    public boolean addCars(int id, String location, int numCars, int price) throws RemoteException{
-        return manager_Cars.addCars(id, location, numCars, price);
+    public boolean addCars(int id, String location, int numCars, int price) throws RemoteException,TransactionAbortedException,InvalidTransactionException,TransactionAlreadyWaitingException{
+        try {
+            long time = System.currentTimeMillis();
+            checkTTL(time);
+            if(!trans_active.containsKey(id)){
+                throw new InvalidTransactionException();
+            }
+            time_to_live.replace(id,time);
+
+            addRMToActiveTransaction(id, false, true, false);
+
+            return manager_Cars.addCars(id, location, numCars, price);
+        }
+        catch(TransactionAbortedException e){
+            List<IResourceManager> RM_used = trans_active.get(id);
+
+            if (RM_used != null){
+
+                for(IResourceManager RM:RM_used){
+                    RM.abort(id);
+                }
+                trans_active.remove(id);
+                time_to_live.remove(id);
+            }
+            throw e;
+        }
     }
 
-    public boolean addRooms(int id, String location, int numRooms, int price) throws RemoteException{
-        return manager_Rooms.addRooms(id, location, numRooms, price);
+    public boolean addRooms(int id, String location, int numRooms, int price) throws RemoteException,TransactionAbortedException,InvalidTransactionException,TransactionAlreadyWaitingException{
+        try {
+            long time = System.currentTimeMillis();
+            checkTTL(time);
+            if(!trans_active.containsKey(id)){
+                throw new InvalidTransactionException();
+            }
+            time_to_live.replace(id,time);
+
+            addRMToActiveTransaction(id, false, false, true);
+
+            return manager_Rooms.addRooms(id, location, numRooms, price);
+        }
+        catch(TransactionAbortedException e){
+            List<IResourceManager> RM_used = trans_active.get(id);
+
+            if (RM_used != null){
+
+                for(IResourceManager RM:RM_used){
+                    RM.abort(id);
+                }
+                trans_active.remove(id);
+                time_to_live.remove(id);
+            }
+            throw e;
+        }
     }
 
-    public int newCustomer(int id) throws RemoteException{
-        int cid = manager_Flights.newCustomer(id);
-        manager_Cars.newCustomer(id, cid);
-        manager_Rooms.newCustomer(id, cid);
-        return cid;
+    public int newCustomer(int id) throws RemoteException,TransactionAbortedException,InvalidTransactionException,TransactionAlreadyWaitingException{
+        try {
+            long time = System.currentTimeMillis();
+            checkTTL(time);
+            if(!trans_active.containsKey(id)){
+                throw new InvalidTransactionException();
+            }
+            time_to_live.replace(id,time);
+
+            
+		    // Generate a globally unique ID for the new customer
+		    int cid = customerIDGenerator.getAndIncrement();
+
+
+            addRMToActiveTransaction(id, true, true, true);
+
+            manager_Flights.requestCustomerLock(id, cid, LockType.LOCK_WRITE);
+            manager_Cars.requestCustomerLock(id, cid, LockType.LOCK_WRITE);
+            manager_Rooms.requestCustomerLock(id, cid, LockType.LOCK_WRITE);
+
+            manager_Flights.newCustomer(id, cid);
+            manager_Cars.newCustomer(id, cid);
+            manager_Rooms.newCustomer(id, cid);
+
+            return cid;
+        }
+        catch(TransactionAbortedException e){
+            List<IResourceManager> RM_used = trans_active.get(id);
+
+            if (RM_used != null){
+
+                for(IResourceManager RM:RM_used){
+                    RM.abort(id);
+                }
+                trans_active.remove(id);
+                time_to_live.remove(id);
+            }
+            throw e;
+        }
     }
 
-    public boolean newCustomer(int id, int cid) throws RemoteException{
-        return manager_Flights.newCustomer(id, cid) &&
+    public boolean newCustomer(int id, int cid) throws RemoteException,InvalidTransactionException,TransactionAbortedException,TransactionAlreadyWaitingException{
+        try {
+            long time = System.currentTimeMillis();
+            checkTTL(time);
+            if(!trans_active.containsKey(id)){
+                throw new InvalidTransactionException();
+            }
+            time_to_live.replace(id,time);
+            
+            addRMToActiveTransaction(id, true, true, true);
+
+            manager_Flights.requestCustomerLock(id, cid, LockType.LOCK_WRITE);
+            manager_Cars.requestCustomerLock(id, cid, LockType.LOCK_WRITE);
+            manager_Rooms.requestCustomerLock(id, cid, LockType.LOCK_WRITE);
+            
+            return manager_Flights.newCustomer(id, cid) &&
                 manager_Rooms.newCustomer(id, cid) &&
                 manager_Cars.newCustomer(id, cid);
+        }
+        catch(TransactionAbortedException e){
+            List<IResourceManager> RM_used = trans_active.get(id);
+
+            if (RM_used != null){
+
+                for(IResourceManager RM:RM_used){
+                    RM.abort(id);
+                }
+                trans_active.remove(id);
+                time_to_live.remove(id);
+            }
+            throw e;
+        }
     }
 
-    public boolean deleteFlight(int id, int flightNum) throws RemoteException{
-        return manager_Flights.deleteFlight(id, flightNum);
+    public boolean deleteFlight(int id, int flightNum) throws RemoteException,InvalidTransactionException,TransactionAbortedException,TransactionAlreadyWaitingException{
+        try {
+            long time = System.currentTimeMillis();
+            checkTTL(time);
+            if(!trans_active.containsKey(id)){
+                throw new InvalidTransactionException();
+            }
+            time_to_live.replace(id,time);
+
+            addRMToActiveTransaction(id, true, false, false);
+
+            return manager_Flights.deleteFlight(id, flightNum);
+        }
+        catch(TransactionAbortedException e){
+            List<IResourceManager> RM_used = trans_active.get(id);
+
+            if (RM_used != null){
+
+                for(IResourceManager RM:RM_used){
+                    RM.abort(id);
+                }
+                trans_active.remove(id);
+                time_to_live.remove(id);
+            }
+            throw e;
+        }
     }
 
-    public boolean deleteCars(int id, String location) throws RemoteException{
-        return manager_Cars.deleteCars(id, location);
+    public boolean deleteCars(int id, String location) throws RemoteException,InvalidTransactionException,TransactionAbortedException,TransactionAlreadyWaitingException{
+        try {
+            long time = System.currentTimeMillis();
+            checkTTL(time);
+            if(!trans_active.containsKey(id)){
+                throw new InvalidTransactionException();
+            }
+            time_to_live.replace(id,time);
+
+            addRMToActiveTransaction(id, false, true, false);
+
+            return manager_Cars.deleteCars(id, location);
+        }
+        catch(TransactionAbortedException e){
+            List<IResourceManager> RM_used = trans_active.get(id);
+
+            if (RM_used != null){
+
+                for(IResourceManager RM:RM_used){
+                    RM.abort(id);
+                }
+                trans_active.remove(id);
+                time_to_live.remove(id);
+            }
+            throw e;
+        }
     }
 
-    public boolean deleteRooms(int id, String location) throws RemoteException{
-        return manager_Rooms.deleteRooms(id, location);
+    public boolean deleteRooms(int id, String location) throws RemoteException,InvalidTransactionException,TransactionAbortedException,TransactionAlreadyWaitingException{
+        try {
+            long time = System.currentTimeMillis();
+            checkTTL(time);
+            if(!trans_active.containsKey(id)){
+                throw new InvalidTransactionException();
+            }
+            time_to_live.replace(id,time);
+
+            addRMToActiveTransaction(id, false, false, true);
+
+            return manager_Rooms.deleteRooms(id, location);
+        }
+        catch(TransactionAbortedException e){
+            List<IResourceManager> RM_used = trans_active.get(id);
+
+            if (RM_used != null){
+
+                for(IResourceManager RM:RM_used){
+                    RM.abort(id);
+                }
+                trans_active.remove(id);
+                time_to_live.remove(id);
+            }
+            throw e;
+        }
     }
 
-    public boolean deleteCustomer(int id, int customerID) throws RemoteException{
-        return manager_Flights.deleteCustomer(id, customerID) &&
+    public boolean deleteCustomer(int id, int customerID) throws RemoteException,InvalidTransactionException,TransactionAbortedException,TransactionAlreadyWaitingException{
+        try {
+            long time = System.currentTimeMillis();
+            checkTTL(time);
+            if(!trans_active.containsKey(id)){
+                throw new InvalidTransactionException();
+            }
+            time_to_live.replace(id,time);
+
+            addRMToActiveTransaction(id, true, true, true);
+
+            manager_Flights.requestCustomerLock(id, customerID, LockType.LOCK_WRITE);
+            manager_Cars.requestCustomerLock(id, customerID, LockType.LOCK_WRITE);
+            manager_Rooms.requestCustomerLock(id, customerID, LockType.LOCK_WRITE);
+
+            return manager_Flights.deleteCustomer(id, customerID) &&
                 manager_Cars.deleteCustomer(id, customerID) &&
                 manager_Rooms.deleteCustomer(id, customerID);
+        }
+        catch(TransactionAbortedException e){
+            List<IResourceManager> RM_used = trans_active.get(id);
+
+            if (RM_used != null){
+
+                for(IResourceManager RM:RM_used){
+                    RM.abort(id);
+                }
+                trans_active.remove(id);
+                time_to_live.remove(id);
+            }
+            throw e;
+        }
     }
 
-    public int queryFlight(int id, int flightNumber) throws RemoteException{
-        return manager_Flights.queryFlight(id, flightNumber);
+    public int queryFlight(int id, int flightNumber) throws RemoteException,InvalidTransactionException,TransactionAbortedException,TransactionAlreadyWaitingException{
+        try {
+            long time = System.currentTimeMillis();
+            checkTTL(time);
+            if(!trans_active.containsKey(id)){
+                throw new InvalidTransactionException();
+            }
+
+            time_to_live.replace(id,time);
+
+            addRMToActiveTransaction(id, true, false, false);
+
+            return manager_Flights.queryFlight(id, flightNumber);
+        }
+        catch(TransactionAbortedException e){
+            List<IResourceManager> RM_used = trans_active.get(id);
+
+            if (RM_used != null){
+
+                for(IResourceManager RM:RM_used){
+                    RM.abort(id);
+                }
+                trans_active.remove(id);
+                time_to_live.remove(id);
+            }
+            throw e;
+        }
     }
 
     /**
@@ -164,8 +439,34 @@ public class RMIMiddleware implements IResourceManager{
      *
      * @return Number of available cars at this location
      */
-    public int queryCars(int id, String location) throws RemoteException{
-        return manager_Cars.queryCars(id, location);
+    public int queryCars(int id, String location) throws RemoteException,InvalidTransactionException,TransactionAbortedException,TransactionAlreadyWaitingException{
+        try {
+            long time = System.currentTimeMillis();
+            checkTTL(time);
+
+            if(!trans_active.containsKey(id)){
+                throw new InvalidTransactionException();
+            }
+
+            time_to_live.replace(id,time);
+
+            addRMToActiveTransaction(id, false, true, false);
+
+            return manager_Cars.queryCars(id, location);
+        }
+        catch(TransactionAbortedException e){
+            List<IResourceManager> RM_used = trans_active.get(id);
+
+            if (RM_used != null){
+
+                for(IResourceManager RM:RM_used){
+                    RM.abort(id);
+                }
+                trans_active.remove(id);
+                time_to_live.remove(id);
+            }
+            throw e;
+        }
     }
 
     /**
@@ -173,8 +474,32 @@ public class RMIMiddleware implements IResourceManager{
      *
      * @return Number of available rooms at this location
      */
-    public int queryRooms(int id, String location) throws RemoteException{
-        return manager_Rooms.queryRooms(id, location);
+    public int queryRooms(int id, String location) throws RemoteException,InvalidTransactionException,TransactionAbortedException,TransactionAlreadyWaitingException{
+        try {
+            long time = System.currentTimeMillis();
+            checkTTL(time);
+            if(!trans_active.containsKey(id)){
+                throw new InvalidTransactionException();
+            }
+            time_to_live.replace(id,time);
+
+            addRMToActiveTransaction(id, false, false, true);
+
+            return manager_Rooms.queryRooms(id, location);
+        }
+        catch(TransactionAbortedException e){
+            List<IResourceManager> RM_used = trans_active.get(id);
+
+            if (RM_used != null){
+
+                for(IResourceManager RM:RM_used){
+                    RM.abort(id);
+                }
+                trans_active.remove(id);
+                time_to_live.remove(id);
+            }
+            throw e;
+        }
     }
 
     /**
@@ -182,20 +507,45 @@ public class RMIMiddleware implements IResourceManager{
      *
      * @return A formatted bill for the customer
      */
-    public String queryCustomerInfo(int id, int customerID) throws RemoteException{
-        
-        //Retrieve reservations from all 3 servers
-        RMHashMap flightReservations = manager_Flights.queryCustomerReservations(id, customerID);
-        RMHashMap carReservations = manager_Cars.queryCustomerReservations(id, customerID);
-        RMHashMap roomReservations = manager_Rooms.queryCustomerReservations(id, customerID);
+    public String queryCustomerInfo(int id, int customerID) throws RemoteException,InvalidTransactionException, TransactionAbortedException, TransactionAlreadyWaitingException {
+        try {
+            long time = System.currentTimeMillis();
+            checkTTL(time);
+            if(!trans_active.containsKey(id)){
+                throw new InvalidTransactionException();
+            }
+            time_to_live.replace(id,time);
+            //Retrieve reservations from all 3 servers
+            addRMToActiveTransaction(id, true, true, true);
 
-        //Combine all reservations into a single hashmap
-        flightReservations.putAll(carReservations);
-        flightReservations.putAll(roomReservations);
+            manager_Flights.requestCustomerLock(id, customerID, LockType.LOCK_READ);
+            manager_Cars.requestCustomerLock(id, customerID, LockType.LOCK_READ);
+            manager_Rooms.requestCustomerLock(id, customerID, LockType.LOCK_READ);
 
-        //Create a temporary instance of customer to print the bill.
-        Customer cust = new Customer(customerID, flightReservations);
-        return cust.getBill();
+            RMHashMap flightReservations = manager_Flights.queryCustomerReservations(id, customerID);
+            RMHashMap carReservations = manager_Cars.queryCustomerReservations(id, customerID);
+            RMHashMap roomReservations = manager_Rooms.queryCustomerReservations(id, customerID);
+            //Combine all reservations into a single hashmap
+            flightReservations.putAll(carReservations);
+            flightReservations.putAll(roomReservations);
+
+            //Create a temporary instance of customer to print the bill.
+            Customer cust = new Customer(customerID, flightReservations);
+            return cust.getBill();
+        }
+        catch(TransactionAbortedException e){
+            List<IResourceManager> RM_used = trans_active.get(id);
+
+            if (RM_used != null){
+
+                for(IResourceManager RM:RM_used){
+                    RM.abort(id);
+                }
+                trans_active.remove(id);
+                time_to_live.remove(id);
+            }
+            throw e;
+        }
     }
 
     /**
@@ -203,7 +553,7 @@ public class RMIMiddleware implements IResourceManager{
      *
      * @return A map of the customer's reservations
      */
-    public RMHashMap queryCustomerReservations(int id, int customerID) throws RemoteException{
+    public RMHashMap queryCustomerReservations(int id, int customerID) throws RemoteException, TransactionAbortedException, InvalidTransactionException, TransactionAlreadyWaitingException{
         return null;
     }
 
@@ -212,8 +562,32 @@ public class RMIMiddleware implements IResourceManager{
      *
      * @return Price of a seat in this flight
      */
-    public int queryFlightPrice(int id, int flightNumber) throws RemoteException{
-        return manager_Flights.queryFlightPrice(id, flightNumber);
+    public int queryFlightPrice(int id, int flightNumber) throws RemoteException,InvalidTransactionException,TransactionAbortedException, TransactionAlreadyWaitingException{
+        try {
+            long time = System.currentTimeMillis();
+            checkTTL(time);
+            if(!trans_active.containsKey(id)){
+                throw new InvalidTransactionException();
+            }
+            time_to_live.replace(id,time);
+            
+            addRMToActiveTransaction(id, true, false, false);
+
+            return manager_Flights.queryFlightPrice(id, flightNumber);
+        }
+        catch(TransactionAbortedException e){
+            List<IResourceManager> RM_used = trans_active.get(id);
+
+            if (RM_used != null){
+
+                for(IResourceManager RM:RM_used){
+                    RM.abort(id);
+                }
+                trans_active.remove(id);
+                time_to_live.remove(id);
+            }
+            throw e;
+        }
     }
 
     /**
@@ -221,8 +595,34 @@ public class RMIMiddleware implements IResourceManager{
      *
      * @return Price of car
      */
-    public int queryCarsPrice(int id, String location) throws RemoteException{
-        return manager_Cars.queryCarsPrice(id, location);
+    public int queryCarsPrice(int id, String location) throws RemoteException,InvalidTransactionException,TransactionAbortedException, TransactionAlreadyWaitingException{
+        try {
+            long time = System.currentTimeMillis();
+            checkTTL(time);
+
+            if(!trans_active.containsKey(id)){
+                throw new InvalidTransactionException();
+            }
+
+            time_to_live.replace(id,time);
+
+            addRMToActiveTransaction(id, false, true, false);
+
+            return manager_Cars.queryCarsPrice(id, location);
+        }
+        catch(TransactionAbortedException e){
+            List<IResourceManager> RM_used = trans_active.get(id);
+
+            if (RM_used != null){
+
+                for(IResourceManager RM:RM_used){
+                    RM.abort(id);
+                }
+                trans_active.remove(id);
+                time_to_live.remove(id);
+            }
+            throw e;
+        }
     }
 
     /**
@@ -230,8 +630,32 @@ public class RMIMiddleware implements IResourceManager{
      *
      * @return Price of a room
      */
-    public int queryRoomsPrice(int id, String location) throws RemoteException{
-        return manager_Rooms.queryRoomsPrice(id, location);
+    public int queryRoomsPrice(int id, String location) throws RemoteException,InvalidTransactionException,TransactionAbortedException,TransactionAlreadyWaitingException{
+        try {
+            long time = System.currentTimeMillis();
+            checkTTL(time);
+            if(!trans_active.containsKey(id)){
+                throw new InvalidTransactionException();
+            }
+            time_to_live.replace(id,time);
+
+            addRMToActiveTransaction(id, false, false, true);
+
+            return manager_Rooms.queryRoomsPrice(id, location);
+        }
+        catch(TransactionAbortedException e){
+            List<IResourceManager> RM_used = trans_active.get(id);
+
+            if (RM_used != null){
+
+                for(IResourceManager RM:RM_used){
+                    RM.abort(id);
+                }
+                trans_active.remove(id);
+                time_to_live.remove(id);
+            }
+            throw e;
+        }
     }
 
     /**
@@ -239,8 +663,37 @@ public class RMIMiddleware implements IResourceManager{
      *
      * @return Success
      */
-    public boolean reserveFlight(int id, int customerID, int flightNumber) throws RemoteException{
-        return manager_Flights.reserveFlight(id, customerID, flightNumber);
+    public boolean reserveFlight(int id, int customerID, int flightNumber) throws RemoteException,InvalidTransactionException,TransactionAbortedException,TransactionAlreadyWaitingException{
+        try {
+
+            long time = System.currentTimeMillis();
+            checkTTL(time);
+            if(!trans_active.containsKey(id)){
+                throw new InvalidTransactionException();
+            }
+            time_to_live.replace(id,time);
+
+            addRMToActiveTransaction(id, true, true, true);
+
+            manager_Flights.requestCustomerLock(id, customerID, LockType.LOCK_WRITE);
+            manager_Cars.requestCustomerLock(id, customerID, LockType.LOCK_WRITE);
+            manager_Rooms.requestCustomerLock(id, customerID, LockType.LOCK_WRITE);
+
+            return manager_Flights.reserveFlight(id, customerID, flightNumber);
+        }
+        catch(TransactionAbortedException e){
+            List<IResourceManager> RM_used = trans_active.get(id);
+
+            if (RM_used != null){
+
+                for(IResourceManager RM:RM_used){
+                    RM.abort(id);
+                }
+                trans_active.remove(id);
+                time_to_live.remove(id);
+            }
+            throw e;
+        }
     }
 
     /**
@@ -248,8 +701,37 @@ public class RMIMiddleware implements IResourceManager{
      *
      * @return Success
      */
-    public boolean reserveCar(int id, int customerID, String location) throws RemoteException{
-        return manager_Cars.reserveCar(id, customerID, location);
+    public boolean reserveCar(int id, int customerID, String location) throws RemoteException,InvalidTransactionException,TransactionAbortedException,TransactionAlreadyWaitingException{
+        try {
+            long time = System.currentTimeMillis();
+            checkTTL(time);
+            if(!trans_active.containsKey(id)){
+                throw new InvalidTransactionException();
+            }
+            time_to_live.replace(id,time);
+
+            
+            addRMToActiveTransaction(id, true, true, true);
+
+            manager_Flights.requestCustomerLock(id, customerID, LockType.LOCK_WRITE);
+            manager_Cars.requestCustomerLock(id, customerID, LockType.LOCK_WRITE);
+            manager_Rooms.requestCustomerLock(id, customerID, LockType.LOCK_WRITE);
+
+            return manager_Cars.reserveCar(id, customerID, location);
+        }
+        catch(TransactionAbortedException e){
+            List<IResourceManager> RM_used = trans_active.get(id);
+
+            if (RM_used != null){
+
+                for(IResourceManager RM:RM_used){
+                    RM.abort(id);
+                }
+                trans_active.remove(id);
+                time_to_live.remove(id);
+            }
+            throw e;
+        }
     }
 
     /**
@@ -257,8 +739,36 @@ public class RMIMiddleware implements IResourceManager{
      *
      * @return Success
      */
-    public boolean reserveRoom(int id, int customerID, String location) throws RemoteException{
-        return manager_Rooms.reserveRoom(id, customerID, location);
+    public boolean reserveRoom(int id, int customerID, String location) throws RemoteException,TransactionAbortedException,InvalidTransactionException,TransactionAlreadyWaitingException{
+        try {
+            long time = System.currentTimeMillis();
+            checkTTL(time);
+            if(!trans_active.containsKey(id)){
+                throw new InvalidTransactionException();
+            }
+            time_to_live.replace(id,time);
+
+            addRMToActiveTransaction(id, true, true, true);
+
+            manager_Flights.requestCustomerLock(id, customerID, LockType.LOCK_WRITE);
+            manager_Cars.requestCustomerLock(id, customerID, LockType.LOCK_WRITE);
+            manager_Rooms.requestCustomerLock(id, customerID, LockType.LOCK_WRITE);
+
+            return manager_Rooms.reserveRoom(id, customerID, location);
+        }
+        catch(TransactionAbortedException e){
+            List<IResourceManager> RM_used = trans_active.get(id);
+
+            if (RM_used != null){
+
+                for(IResourceManager RM:RM_used){
+                    RM.abort(id);
+                }
+                trans_active.remove(id);
+                time_to_live.remove(id);
+            }
+            throw e;
+        }
     }
 
     /**
@@ -266,27 +776,53 @@ public class RMIMiddleware implements IResourceManager{
      *
      * @return Success
      */
-    public boolean bundle(int id, int customerID, Vector<String> flightNumbers, String location, boolean car, boolean room) throws RemoteException{
-        
-        boolean somethingReserved = false;
-        for (String flightNum : flightNumbers) {
-            if (manager_Flights.reserveFlight(id, customerID, Integer.parseInt(flightNum)))
-                somethingReserved = true;
-        }
+    public boolean bundle(int id, int customerID, Vector<String> flightNumbers, String location, boolean car, boolean room) throws RemoteException,TransactionAbortedException,InvalidTransactionException,TransactionAlreadyWaitingException {
+        try {
+            long time = System.currentTimeMillis();
+            checkTTL(time);
+            if (!trans_active.containsKey(id)) {
+                throw new InvalidTransactionException();
+            }
+            time_to_live.replace(id, time);
 
-        if (car) {
-            if (manager_Cars.reserveCar(id, customerID, location))
-                somethingReserved = true;
-        }
+            addRMToActiveTransaction(id, true, true, true);
 
-        if (room) {
-            if (manager_Rooms.reserveRoom(id, customerID, location))
-                somethingReserved = true;
-        }
+            manager_Flights.requestCustomerLock(id, customerID, LockType.LOCK_WRITE);
+            manager_Cars.requestCustomerLock(id, customerID, LockType.LOCK_WRITE);
+            manager_Rooms.requestCustomerLock(id, customerID, LockType.LOCK_WRITE);
 
-        return somethingReserved;
+            boolean somethingReserved = false;
+            for (String flightNum : flightNumbers) {
+                if (manager_Flights.reserveFlight(id, customerID, Integer.parseInt(flightNum)))
+                    somethingReserved = true;
+            }
+
+            if (car) {
+                if (manager_Cars.reserveCar(id, customerID, location))
+                    somethingReserved = true;
+            }
+
+            if (room) {
+                if (manager_Rooms.reserveRoom(id, customerID, location))
+                    somethingReserved = true;
+            }
+
+            return somethingReserved;
+        }
+        catch(TransactionAbortedException e){
+            List<IResourceManager> RM_used = trans_active.get(id);
+
+            if (RM_used != null){
+
+                for(IResourceManager RM:RM_used){
+                    RM.abort(id);
+                }
+                trans_active.remove(id);
+                time_to_live.remove(id);
+            }
+            throw e;
+        }
     }
-
     /**
      * Convenience for probing the resource manager.
      *
@@ -296,30 +832,103 @@ public class RMIMiddleware implements IResourceManager{
         return server_name;
     }
 
-    @Override
-    public int start() throws RemoteException {
-        // TODO Auto-generated method stub
-        return 0;
+    private void checkTTL(long currentTime) throws RemoteException, InvalidTransactionException{
+        for(var entry : time_to_live.entrySet()){
+            long prev_time = entry.getValue();
+            if((currentTime - prev_time) > TTL){
+                int trans_ID = entry.getKey();
+                List<IResourceManager> RM_used = trans_active.get(trans_ID);
+                for (IResourceManager manager:RM_used){
+                    manager.abort(trans_ID);
+                }
+                trans_active.remove(trans_ID);
+            }
+        }
+        time_to_live.entrySet().removeIf(entry -> (currentTime - entry.getValue()) > TTL);
     }
 
-    @Override
-    public boolean commit(int transactionId)
-            throws RemoteException, TransactionAbortedException, InvalidTransactionException {
-        // TODO Auto-generated method stub
-        return false;
+    private void addRMToActiveTransaction(int id, boolean addFlightRM, boolean addCarsRM, boolean addRoomsRM)
+    {
+        if(addRoomsRM && !trans_active.get(id).contains(this.manager_Rooms)){
+            trans_active.get(id).add(this.manager_Rooms);
+        };
+        if(addCarsRM && !trans_active.get(id).contains(this.manager_Cars)){
+            trans_active.get(id).add(this.manager_Cars);
+        };
+        if(addFlightRM && !trans_active.get(id).contains(this.manager_Flights)){
+            trans_active.get(id).add(this.manager_Flights);
+        };
     }
 
-    @Override
-    public void abort(int transactionId) throws RemoteException, InvalidTransactionException {
-        // TODO Auto-generated method stub
+    // Only used at the RM layer, so no implementation needed in the middleware.
+    public void requestCustomerLock(int id, int customerID, LockType lockType) throws RemoteException, InvalidTransactionException, TransactionAbortedException, TransactionAlreadyWaitingException
+    {
         
     }
 
     @Override
-    public boolean shutdown() throws RemoteException {
-        // TODO Auto-generated method stub
-        return false;
+    public int start() throws RemoteException {
+        int trans_ID = transactionID.getAndIncrement();
+        List<IResourceManager> RM_used = new ArrayList<>();
+        trans_active.put(trans_ID,RM_used);
+        long time = System.currentTimeMillis();
+        time_to_live.put(trans_ID,time);
+        return trans_ID;
     }
 
+    @Override
+    public boolean commit(int transactionId) throws RemoteException, InvalidTransactionException {
+        List<IResourceManager> RM_used = trans_active.get(transactionId);
 
+        if (RM_used == null)
+            throw new InvalidTransactionException();
+
+        for(IResourceManager RM:RM_used){
+            RM.commit(transactionId);
+        }
+
+        trans_active.remove(transactionId);
+        time_to_live.remove(transactionId);
+
+        return true;
+    }
+
+    @Override
+    public void abort(int transactionId) throws RemoteException, InvalidTransactionException {
+        
+        List<IResourceManager> RM_used = trans_active.get(transactionId);
+
+        if (RM_used == null)
+            throw new InvalidTransactionException();
+
+        for(IResourceManager RM:RM_used){
+            RM.abort(transactionId);
+        }
+
+        trans_active.remove(transactionId);
+        time_to_live.remove(transactionId);
+    }
+
+    @Override
+    public boolean shutdown() throws RemoteException {
+        
+        //Abort all ongoing transactions
+        for (int xid : trans_active.keySet())
+        {
+            List<IResourceManager> RM_used = trans_active.get(xid);
+    
+            for(IResourceManager RM:RM_used){
+                try{
+                    RM.abort(xid);
+                }
+                catch (InvalidTransactionException e) {}
+            }
+        }
+
+        manager_Flights.shutdown();
+        manager_Cars.shutdown();
+        manager_Rooms.shutdown();
+        System.exit(0);
+        return true;
+    }
 }

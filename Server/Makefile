@@ -8,16 +8,17 @@ java.policy: FORCE
 
 FORCE: ;
 
-RMIInterface.jar: Server/Interface/* Server/Common/RMHashMap.java
+RMIInterface.jar: Server/Interface/* Server/Common/RMHashMap.java Server/LockManager/TransactionLockObject.java
 	@echo "Compiling RMI server interface"
 	javac Server/Interface/*.java
 	javac Server/Common/RMHashMap.java
-	jar cvf RMIInterface.jar Server/Interface/*.class Server/Common/RMHashMap.class
+	javac Server/LockManager/TransactionLockObject.java
+	jar cvf RMIInterface.jar Server/Interface/*.class Server/Common/RMHashMap.class 'Server/LockManager/TransactionLockObject$$LockType.class'
 
 compile-server-rmi: Server/RMI/*.java Server/Interface/* Server/Common/*.java Server/LockManager/*.java
 	javac Server/RMI/*.java Server/Interface/*.java Server/Common/*.java Server/LockManager/*.java
 
 clean:
-	rm -f Server/Interface/*.class Server/Common/*.class Server/RMI/*.class
+	rm -f Server/Interface/*.class Server/Common/*.class Server/RMI/*.class Server/LockManager/*.class
 	rm -f RMIInterface.jar
 	rm -f java.policy

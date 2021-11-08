@@ -29,7 +29,7 @@ public class Transaction{
         return aSize;
     }
 
-    private void executeAllOperations() throws RemoteException{
+    private void executeAllOperations() throws RemoteException, IResourceManager.InvalidTransactionException, IResourceManager.TransactionAbortedException, IResourceManager.TransactionAlreadyWaitingException {
         for(Operation operation : aOperations){
             operation.executeOnClient(aClient);
         }
@@ -44,7 +44,7 @@ public class Transaction{
         //TODO Implement this
     }
 
-    public int start() throws RemoteException{
+    public int start() throws RemoteException, IResourceManager.InvalidTransactionException, IResourceManager.TransactionAbortedException, IResourceManager.TransactionAlreadyWaitingException {
         int xid = aClient.startTransaction();
         //try{
         TransactionTimer timer = new TransactionTimer();

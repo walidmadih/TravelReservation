@@ -9,6 +9,9 @@ import java.rmi.RemoteException;
 import java.rmi.ConnectException;
 import java.rmi.ServerException;
 import java.rmi.UnmarshalException;
+import Server.Interface.IResourceManager.TransactionAbortedException;
+import Server.Interface.IResourceManager.InvalidTransactionException;
+import Server.Interface.IResourceManager.TransactionAlreadyWaitingException;
 
 public abstract class Client
 {
@@ -54,6 +57,15 @@ public abstract class Client
 					connectServer();
 					execute(cmd, arguments);
 				}
+				catch (TransactionAbortedException e) {
+					System.out.println("Transaction has been aborted.");
+				}
+				catch (InvalidTransactionException e) {
+					System.out.println("The provided transaction ID is invalid.");
+				}
+				catch (TransactionAlreadyWaitingException e) {
+					System.out.println("This transaction is currently waiting for a previous operation to complete.");
+				}
 			}
 			catch (IllegalArgumentException|ServerException e) {
 				System.err.println((char)27 + "[31;1mCommand exception: " + (char)27 + "[0m" + e.getLocalizedMessage());
@@ -72,11 +84,11 @@ public abstract class Client
 		return m_resourceManager.start();
 	}
 
-	public void execute(Command cmd, Vector<String> arguments) throws RemoteException, NumberFormatException{
+	public void execute(Command cmd, Vector<String> arguments) throws RemoteException, NumberFormatException,TransactionAbortedException,InvalidTransactionException, TransactionAlreadyWaitingException{
 		execute(cmd, arguments, new TransactionTimer());
 	}
 
-	public void execute(Command cmd, Vector<String> arguments, TransactionTimer timer) throws RemoteException, NumberFormatException
+	public void execute(Command cmd, Vector<String> arguments, TransactionTimer timer) throws RemoteException, NumberFormatException, TransactionAbortedException, InvalidTransactionException, TransactionAlreadyWaitingException
 	{
 		switch (cmd)
 		{
@@ -89,6 +101,44 @@ public abstract class Client
 					System.out.println(l_cmd.toString());
 				} else {
 					System.err.println((char)27 + "[31;1mCommand exception: " + (char)27 + "[0mImproper use of help command. Location \"help\" or \"help,<CommandName>\"");
+				}
+				break;
+			}
+			case Start:
+			{
+				checkArgumentsCount(1,arguments.size());
+				int trans_id = m_resourceManager.start();
+				System.out.println("Your transaction id is "+trans_id);
+				break;
+			}
+			case Commit:
+			{
+				checkArgumentsCount(2, arguments.size());
+
+				if (m_resourceManager.commit(toInt(arguments.elementAt(1)))){
+					System.out.println("Transaction commited successfully.");
+				}
+				else {
+					System.out.println("Failed to commit transaction.");
+				}
+				break;
+			}
+			case Abort:
+			{
+				checkArgumentsCount(2, arguments.size());
+				m_resourceManager.abort(toInt(arguments.elementAt(1)));
+				System.out.println("Transaction aborted.");
+				break;
+			}
+			case Shutdown:
+			{
+				checkArgumentsCount(1, arguments.size());
+				if (m_resourceManager.shutdown()){
+					System.out.println("All servers successfully shutdown, client quitting.");
+					System.exit(0);
+				}
+				else {
+					System.out.println("Failed to shutdown servers.");
 				}
 				break;
 			}
