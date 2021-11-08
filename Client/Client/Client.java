@@ -74,11 +74,11 @@ public abstract class Client
 		return m_resourceManager.start();
 	}
 
-	public void execute(Command cmd, Vector<String> arguments) throws RemoteException, NumberFormatException{
+	public void execute(Command cmd, Vector<String> arguments) throws RemoteException, NumberFormatException,TransactionAbortedException,InvalidTransactionException{
 		execute(cmd, arguments, new TransactionTimer());
 	}
 
-	public void execute(Command cmd, Vector<String> arguments, TransactionTimer timer) throws RemoteException, NumberFormatException,
+	public void execute(Command cmd, Vector<String> arguments, TransactionTimer timer) throws RemoteException, NumberFormatException, TransactionAbortedException, InvalidTransactionException
 	{
 		switch (cmd)
 		{
