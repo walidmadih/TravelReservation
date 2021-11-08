@@ -34,7 +34,7 @@ public class RMIMiddleware implements IResourceManager{
     private AtomicInteger customerIDGenerator = new AtomicInteger(0);
     private HashMap<Integer, List<IResourceManager>> trans_active = new HashMap();
     private HashMap<Integer,Long> time_to_live = new HashMap();
-    private long TTL = 15000;
+    private long TTL = 60000;
     public static void main(String args[]){
         String host1 = args[0];
         String host2 = args[1];
