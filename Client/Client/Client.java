@@ -1,8 +1,12 @@
 package Client;
 
 import Server.Interface.*;
+import Server.Interface.IResourceManager.InvalidTransactionException;
+import Server.Interface.IResourceManager.TransactionAbortedException;
 
 import java.util.*;
+
+import Client.DataGatherer.TestClient;
 
 import java.io.*;
 import java.rmi.RemoteException;
@@ -13,6 +17,14 @@ import java.rmi.UnmarshalException;
 public abstract class Client
 {
 	IResourceManager m_resourceManager = null;
+	public TransactionTimer timer = new TransactionTimer();
+	public TransactionTimer transactionLayerTimer = new TransactionTimer();
+	protected ArrayList<TestClient> clients;
+	private PrintStream out;
+
+	public void setOut(PrintStream ps){
+		out = ps;
+	}
 
 	public Client()
 	{
@@ -68,16 +80,22 @@ public abstract class Client
 		}
 	}
 
+	public boolean commitTransaction(int transactionId) throws RemoteException, InvalidTransactionException, TransactionAbortedException{
+		timer.commit(transactionId);
+		transactionLayerTimer.stop(transactionId);
+		transactionLayerTimer.commit(transactionId);
+		return m_resourceManager.commit(transactionId);
+	}
 	public int startTransaction() throws RemoteException{
-		return m_resourceManager.start();
+		int xid = m_resourceManager.start();
+		transactionLayerTimer.start(xid);
+		return xid;
 	}
 
-	public void execute(Command cmd, Vector<String> arguments) throws RemoteException, NumberFormatException{
-		execute(cmd, arguments, new TransactionTimer());
-	}
-
-	public void execute(Command cmd, Vector<String> arguments, TransactionTimer timer) throws RemoteException, NumberFormatException
+	public void execute(Command cmd, Vector<String> arguments) throws RemoteException, NumberFormatException, InvalidTransactionException, TransactionAbortedException
 	{
+		int xid = toInt(arguments.elementAt(1));
+		timer.start(xid);
 		switch (cmd)
 		{
 			case Help:
@@ -105,6 +123,7 @@ public abstract class Client
 				int flightSeats = toInt(arguments.elementAt(3));
 				int flightPrice = toInt(arguments.elementAt(4));
 
+				timer.stop(id);
 				if (m_resourceManager.addFlight(id, flightNum, flightSeats, flightPrice)) {
 					System.out.println("Flight added");
 				} else {
@@ -125,6 +144,7 @@ public abstract class Client
 				int numCars = toInt(arguments.elementAt(3));
 				int price = toInt(arguments.elementAt(4));
 
+				timer.stop(id);
 				if (m_resourceManager.addCars(id, location, numCars, price)) {
 					System.out.println("Cars added");
 				} else {
@@ -145,6 +165,7 @@ public abstract class Client
 				int numRooms = toInt(arguments.elementAt(3));
 				int price = toInt(arguments.elementAt(4));
 
+				timer.stop(id);
 				if (m_resourceManager.addRooms(id, location, numRooms, price)) {
 					System.out.println("Rooms added");
 				} else {
@@ -158,6 +179,7 @@ public abstract class Client
 				System.out.println("Adding a new customer [xid=" + arguments.elementAt(1) + "]");
 
 				int id = toInt(arguments.elementAt(1));
+				timer.stop(id);
 				int customer = m_resourceManager.newCustomer(id);
 
 				System.out.println("Add customer ID: " + customer);
@@ -172,6 +194,7 @@ public abstract class Client
 				int id = toInt(arguments.elementAt(1));
 				int customerID = toInt(arguments.elementAt(2));
 
+				timer.stop(id);
 				if (m_resourceManager.newCustomer(id, customerID)) {
 					System.out.println("Add customer ID: " + customerID);
 				} else {
@@ -188,6 +211,7 @@ public abstract class Client
 				int id = toInt(arguments.elementAt(1));
 				int flightNum = toInt(arguments.elementAt(2));
 
+				timer.stop(id);
 				if (m_resourceManager.deleteFlight(id, flightNum)) {
 					System.out.println("Flight Deleted");
 				} else {
@@ -204,6 +228,7 @@ public abstract class Client
 				int id = toInt(arguments.elementAt(1));
 				String location = arguments.elementAt(2);
 
+				timer.stop(id);
 				if (m_resourceManager.deleteCars(id, location)) {
 					System.out.println("Cars Deleted");
 				} else {
@@ -220,6 +245,7 @@ public abstract class Client
 				int id = toInt(arguments.elementAt(1));
 				String location = arguments.elementAt(2);
 
+				timer.stop(id);
 				if (m_resourceManager.deleteRooms(id, location)) {
 					System.out.println("Rooms Deleted");
 				} else {
@@ -236,6 +262,7 @@ public abstract class Client
 				int id = toInt(arguments.elementAt(1));
 				int customerID = toInt(arguments.elementAt(2));
 
+				timer.stop(id);
 				if (m_resourceManager.deleteCustomer(id, customerID)) {
 					System.out.println("Customer Deleted");
 				} else {
@@ -252,6 +279,7 @@ public abstract class Client
 				int id = toInt(arguments.elementAt(1));
 				int flightNum = toInt(arguments.elementAt(2));
 
+				timer.stop(id);
 				int seats = m_resourceManager.queryFlight(id, flightNum);
 				System.out.println("Number of seats available: " + seats);
 				break;
@@ -265,6 +293,7 @@ public abstract class Client
 				int id = toInt(arguments.elementAt(1));
 				String location = arguments.elementAt(2);
 
+				timer.stop(id);
 				int numCars = m_resourceManager.queryCars(id, location);
 				System.out.println("Number of cars at this location: " + numCars);
 				break;
@@ -278,6 +307,7 @@ public abstract class Client
 				int id = toInt(arguments.elementAt(1));
 				String location = arguments.elementAt(2);
 
+				timer.stop(id);
 				int numRoom = m_resourceManager.queryRooms(id, location);
 				System.out.println("Number of rooms at this location: " + numRoom);
 				break;
@@ -291,6 +321,7 @@ public abstract class Client
 				int id = toInt(arguments.elementAt(1));
 				int customerID = toInt(arguments.elementAt(2));
 
+				timer.stop(id);
 				String bill = m_resourceManager.queryCustomerInfo(id, customerID);
 				System.out.print(bill);
 				break;               
@@ -304,6 +335,7 @@ public abstract class Client
 				int id = toInt(arguments.elementAt(1));
 				int flightNum = toInt(arguments.elementAt(2));
 
+				timer.stop(id);
 				int price = m_resourceManager.queryFlightPrice(id, flightNum);
 				System.out.println("Price of a seat: " + price);
 				break;
@@ -317,6 +349,7 @@ public abstract class Client
 				int id = toInt(arguments.elementAt(1));
 				String location = arguments.elementAt(2);
 
+				timer.stop(id);
 				int price = m_resourceManager.queryCarsPrice(id, location);
 				System.out.println("Price of cars at this location: " + price);
 				break;
@@ -330,6 +363,7 @@ public abstract class Client
 				int id = toInt(arguments.elementAt(1));
 				String location = arguments.elementAt(2);
 
+				timer.stop(id);
 				int price = m_resourceManager.queryRoomsPrice(id, location);
 				System.out.println("Price of rooms at this location: " + price);
 				break;
@@ -345,6 +379,7 @@ public abstract class Client
 				int customerID = toInt(arguments.elementAt(2));
 				int flightNum = toInt(arguments.elementAt(3));
 
+				timer.stop(id);
 				if (m_resourceManager.reserveFlight(id, customerID, flightNum)) {
 					System.out.println("Flight Reserved");
 				} else {
@@ -363,6 +398,7 @@ public abstract class Client
 				int customerID = toInt(arguments.elementAt(2));
 				String location = arguments.elementAt(3);
 
+				timer.stop(id);
 				if (m_resourceManager.reserveCar(id, customerID, location)) {
 					System.out.println("Car Reserved");
 				} else {
@@ -381,6 +417,7 @@ public abstract class Client
 				int customerID = toInt(arguments.elementAt(2));
 				String location = arguments.elementAt(3);
 
+				timer.stop(id);
 				if (m_resourceManager.reserveRoom(id, customerID, location)) {
 					System.out.println("Room Reserved");
 				} else {
@@ -415,6 +452,7 @@ public abstract class Client
 				boolean car = toBoolean(arguments.elementAt(arguments.size()-2));
 				boolean room = toBoolean(arguments.elementAt(arguments.size()-1));
 
+				timer.stop(id);
 				if (m_resourceManager.bundle(id, customerID, flightNumbers, location, car, room)) {
 					System.out.println("Bundle Reserved");
 				} else {
@@ -422,12 +460,70 @@ public abstract class Client
 				}
 				break;
 			}
+			case QueryTransactionResponseTime: {
+				int id = toInt(arguments.elementAt(1));
+				Vector<DataPoint> dataPoints = m_resourceManager.queryTransactionResponseTime(id, new Vector<DataPoint>());
+				EnumMap<LayerTypes, Integer> totalTime = new EnumMap<LayerTypes, Integer>(LayerTypes.class);
+				EnumMap<LayerTypes, Integer> totalCount = new EnumMap<LayerTypes, Integer>(LayerTypes.class);
+				for(Client c : clients){
+					dataPoints.add(c.getAverageResponseTime());
+					dataPoints.add(c.getTransactionResponseTime());
+				}
+				for(DataPoint dp : dataPoints){
+					int timeSoFar = totalTime.containsKey(dp.getLayer()) ? totalTime.get(dp.getLayer()) : 0;
+					int countSoFar = totalCount.containsKey(dp.getLayer()) ? totalCount.get(dp.getLayer()) : 0;
+					totalTime.put(dp.getLayer(), timeSoFar + dp.getTotalTime());
+					totalCount.put(dp.getLayer(), countSoFar + dp.getTotalCount());
+				}
+
+
+				totalCount.put(LayerTypes.COMMUNICATION, totalCount.get(LayerTypes.TRANSACTION));
+				int communicationTime = 0;
+				int otherTime = 0;
+				for(LayerTypes layer : totalTime.keySet()){
+					if(layer == LayerTypes.TRANSACTION){
+						continue;
+					}
+					otherTime += totalTime.get(layer);
+				}
+
+				communicationTime = totalTime.get(LayerTypes.TRANSACTION) - otherTime;
+				totalTime.put(LayerTypes.COMMUNICATION, Math.max(communicationTime, 0));
+
+				String output = "";
+
+				for(LayerTypes layer : totalTime.keySet()){
+					int time = totalTime.get(layer);;
+					int count = totalCount.get(layer);
+					double average = (count == 0 || time == 0) ? 0 : (double) time / (double) count;
+					output += String.format("%15s\t\t\t Transactions: %8d \t\t Total Time: %8d \t\t Average Response Time: %8.3f ms\n", layer.name(), count, time, average);
+				}
+				output += String.format("%15s\t\t\t%d Transactions/second\n", "THROUGHPUT", totalCount.get(LayerTypes.TRANSACTION));
+				out.println(output);
+				break;
+			}
+
+			case Commit:
+				int id = toInt(arguments.elementAt(1));
+				if (m_resourceManager.commit(id)){
+					timer.commit(id);
+				}
+				break;
 			case Quit:
 				checkArgumentsCount(1, arguments.size());
 
 				System.out.println("Quitting client");
 				System.exit(0);
 		}
+	}
+
+
+	public DataPoint getTransactionResponseTime(){
+		return transactionLayerTimer.getDataPoint(LayerTypes.TRANSACTION);
+	}
+
+	public DataPoint getAverageResponseTime(){
+		return timer.getDataPoint(LayerTypes.CLIENT);
 	}
 
 	public static Vector<String> parse(String command)

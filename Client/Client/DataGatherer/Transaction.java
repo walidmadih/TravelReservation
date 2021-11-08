@@ -10,11 +10,19 @@ import Client.Client;
 import Client.Command;
 
 import Server.Interface.*;
+import Server.Interface.IResourceManager.InvalidTransactionException;
+import Server.Interface.IResourceManager.TransactionAbortedException;
 
 public class Transaction{
     private final LinkedList<Operation> aOperations;
     private final Client aClient;
     private final int aSize;
+
+    private long startTime;
+    private long endTime;
+    private int transactionTime = 0;
+
+    private int xid;
 
     public Transaction(List<Operation> pOperations, Client pClient){
         aOperations = new LinkedList<>();
@@ -29,40 +37,44 @@ public class Transaction{
         return aSize;
     }
 
-    private void executeAllOperations() throws RemoteException{
+    private void executeAllOperations() throws RemoteException, InvalidTransactionException, TransactionAbortedException{
         for(Operation operation : aOperations){
+            System.out.println(String.format("Executing:  %s ", operation.toString()));
             operation.executeOnClient(aClient);
         }
     }
 
-    private boolean commit(){
-        //TODO Implement this
-        return true;
+    private boolean commit() throws RemoteException, InvalidTransactionException, TransactionAbortedException{
+        return aClient.commitTransaction(xid);
     }
 
     public void abort(){
         //TODO Implement this
+        aClient.transactionLayerTimer.cleanUp(xid);
     }
 
-    public int start() throws RemoteException{
-        int xid = aClient.startTransaction();
-        //try{
-        TransactionTimer timer = new TransactionTimer();
+    public int start() throws RemoteException, InvalidTransactionException, TransactionAbortedException{
+        xid = aClient.startTransaction();
+        System.out.println(String.format("Retrieved XID: %d", xid));
+        startTime = System.currentTimeMillis();
+        endTime = startTime;
         for(Operation operation: aOperations){
             operation.setXid(xid);
         }
         executeAllOperations();
-        if (commit()){
-
-        } else {
+        endTime = System.currentTimeMillis();
+        if(!commit()){
             abort();
         }
+        return xid;
+    }
 
-        //} catch(TransactionAbortedException){
+    public int getTransactionTime(){
+        transactionTime = (int) (endTime - startTime);
+        return transactionTime;
+    }
 
-        //} catch(InvalidTransacitonException){
-
-        //}
+    public int getXid(){
         return xid;
     }
 }

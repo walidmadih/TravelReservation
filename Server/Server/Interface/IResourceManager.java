@@ -80,16 +80,16 @@ public interface IResourceManager extends Remote
      *
      * @return Unique customer identifier
      */
-    public int newCustomer(int id) 
-	throws RemoteException; 
+    public int newCustomer(int id)
+    throws RemoteException;
     
     /**
      * Add customer with id.
      *
      * @return Success
      */
-    public boolean newCustomer(int id, int cid)
-        throws RemoteException;
+    public boolean newCustomer(int id, int cid) 
+    throws RemoteException;
 
     /**
      * Delete the flight.
@@ -183,7 +183,7 @@ public interface IResourceManager extends Remote
      *
      * @return Price of car
      */
-    public int queryCarsPrice(int id, String location) 
+    public int queryCarsPrice(int id, String location)  
 	throws RemoteException; 
 
     /**
@@ -223,7 +223,7 @@ public interface IResourceManager extends Remote
      *
      * @return Success
      */
-    public boolean bundle(int id, int customerID, Vector<String> flightNumbers, String location, boolean car, boolean room)
+    public boolean bundle(int id, int customerID, Vector<String> flightNumbers, String location, boolean car, boolean room) 
 	throws RemoteException; 
 
     /**
@@ -241,8 +241,11 @@ public interface IResourceManager extends Remote
     public boolean commit(int transactionId)
     throws RemoteException, TransactionAbortedException, InvalidTransactionException;
 
-    public void abort(int transactionId)
+    public void abort(int transactionId) 
     throws RemoteException, InvalidTransactionException;
 
     public boolean shutdown() throws RemoteException;
+
+    public Vector<DataPoint> queryTransactionResponseTime(int id, Vector<DataPoint> dataPoints) throws RemoteException;
+
 }

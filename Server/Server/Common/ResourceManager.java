@@ -15,6 +15,7 @@ public class ResourceManager implements IResourceManager
 {
 	protected String m_name = "";
 	protected RMHashMap m_data = new RMHashMap();
+	private TransactionTimer timer = new TransactionTimer();
 
 	public ResourceManager(String p_name)
 	{
@@ -50,7 +51,7 @@ public class ResourceManager implements IResourceManager
 	}
 
 	// Deletes the encar item
-	protected boolean deleteItem(int xid, String key)
+	protected boolean deleteItem(int xid, String key) throws RemoteException
 	{
 		Trace.info("RM::deleteItem(" + xid + ", " + key + ") called");
 		ReservableItem curObj = (ReservableItem)readData(xid, key);
@@ -77,7 +78,7 @@ public class ResourceManager implements IResourceManager
 	}
 
 	// Query the number of available seats/rooms/cars
-	protected int queryNum(int xid, String key)
+	protected int queryNum(int xid, String key) throws RemoteException
 	{
 		Trace.info("RM::queryNum(" + xid + ", " + key + ") called");
 		ReservableItem curObj = (ReservableItem)readData(xid, key);
@@ -91,7 +92,7 @@ public class ResourceManager implements IResourceManager
 	}    
 
 	// Query the price of an item
-	protected int queryPrice(int xid, String key)
+	protected int queryPrice(int xid, String key) throws RemoteException
 	{
 		Trace.info("RM::queryPrice(" + xid + ", " + key + ") called");
 		ReservableItem curObj = (ReservableItem)readData(xid, key);
@@ -105,7 +106,7 @@ public class ResourceManager implements IResourceManager
 	}
 
 	// Reserve an item
-	protected boolean reserveItem(int xid, int customerID, String key, String location)
+	protected boolean reserveItem(int xid, int customerID, String key, String location) throws RemoteException
 	{
 		Trace.info("RM::reserveItem(" + xid + ", customer=" + customerID + ", " + key + ", " + location + ") called" );        
 		// Read customer object if it exists (and read lock it)
@@ -147,6 +148,7 @@ public class ResourceManager implements IResourceManager
 	// NOTE: if flightPrice <= 0 and the flight already exists, it maintains its current price
 	public boolean addFlight(int xid, int flightNum, int flightSeats, int flightPrice) throws RemoteException
 	{
+		timer.start(xid);
 		Trace.info("RM::addFlight(" + xid + ", " + flightNum + ", " + flightSeats + ", $" + flightPrice + ") called");
 		Flight curObj = (Flight)readData(xid, Flight.getKey(flightNum));
 		if (curObj == null)
@@ -167,6 +169,7 @@ public class ResourceManager implements IResourceManager
 			writeData(xid, curObj.getKey(), curObj);
 			Trace.info("RM::addFlight(" + xid + ") modified existing flight " + flightNum + ", seats=" + curObj.getCount() + ", price=$" + flightPrice);
 		}
+		timer.stop(xid);
 		return true;
 	}
 
@@ -174,6 +177,7 @@ public class ResourceManager implements IResourceManager
 	// NOTE: if price <= 0 and the location already exists, it maintains its current price
 	public boolean addCars(int xid, String location, int count, int price) throws RemoteException
 	{
+		timer.start(xid);
 		Trace.info("RM::addCars(" + xid + ", " + location + ", " + count + ", $" + price + ") called");
 		Car curObj = (Car)readData(xid, Car.getKey(location));
 		if (curObj == null)
@@ -194,6 +198,7 @@ public class ResourceManager implements IResourceManager
 			writeData(xid, curObj.getKey(), curObj);
 			Trace.info("RM::addCars(" + xid + ") modified existing location " + location + ", count=" + curObj.getCount() + ", price=$" + price);
 		}
+		timer.stop(xid);
 		return true;
 	}
 
@@ -201,6 +206,7 @@ public class ResourceManager implements IResourceManager
 	// NOTE: if price <= 0 and the room location already exists, it maintains its current price
 	public boolean addRooms(int xid, String location, int count, int price) throws RemoteException
 	{
+		timer.start(xid);
 		Trace.info("RM::addRooms(" + xid + ", " + location + ", " + count + ", $" + price + ") called");
 		Room curObj = (Room)readData(xid, Room.getKey(location));
 		if (curObj == null)
@@ -219,76 +225,107 @@ public class ResourceManager implements IResourceManager
 			writeData(xid, curObj.getKey(), curObj);
 			Trace.info("RM::addRooms(" + xid + ") modified existing location " + location + ", count=" + curObj.getCount() + ", price=$" + price);
 		}
+		timer.stop(xid);
 		return true;
 	}
 
 	// Deletes flight
 	public boolean deleteFlight(int xid, int flightNum) throws RemoteException
 	{
-		return deleteItem(xid, Flight.getKey(flightNum));
+		timer.start(xid);
+		boolean result = deleteItem(xid, Flight.getKey(flightNum));
+		timer.stop(xid);
+		return result;
 	}
 
 	// Delete cars at a location
 	public boolean deleteCars(int xid, String location) throws RemoteException
 	{
-		return deleteItem(xid, Car.getKey(location));
+		timer.start(xid);
+		boolean result = deleteItem(xid, Car.getKey(location));
+		timer.stop(xid);
+		return result;
 	}
 
 	// Delete rooms at a location
 	public boolean deleteRooms(int xid, String location) throws RemoteException
 	{
-		return deleteItem(xid, Room.getKey(location));
+		timer.start(xid);
+		boolean result = deleteItem(xid, Room.getKey(location));
+		timer.stop(xid);
+		return result;
 	}
 
 	// Returns the number of empty seats in this flight
 	public int queryFlight(int xid, int flightNum) throws RemoteException
 	{
-		return queryNum(xid, Flight.getKey(flightNum));
+		timer.start(xid);
+		int result = queryNum(xid, Flight.getKey(flightNum));
+		timer.stop(xid);
+		return result;
 	}
 
 	// Returns the number of cars available at a location
 	public int queryCars(int xid, String location) throws RemoteException
 	{
-		return queryNum(xid, Car.getKey(location));
+		timer.start(xid);
+		int result = queryNum(xid, Car.getKey(location));
+		timer.stop(xid);
+		return result;
 	}
 
 	// Returns the amount of rooms available at a location
 	public int queryRooms(int xid, String location) throws RemoteException
 	{
-		return queryNum(xid, Room.getKey(location));
+		timer.start(xid);
+		int result = queryNum(xid, Room.getKey(location));
+		timer.stop(xid);
+		return result;
 	}
 
 	// Returns price of a seat in this flight
 	public int queryFlightPrice(int xid, int flightNum) throws RemoteException
 	{
-		return queryPrice(xid, Flight.getKey(flightNum));
+		timer.start(xid);
+		int result = queryPrice(xid, Flight.getKey(flightNum));
+		timer.stop(xid);
+		return result;
 	}
 
 	// Returns price of cars at this location
 	public int queryCarsPrice(int xid, String location) throws RemoteException
 	{
-		return queryPrice(xid, Car.getKey(location));
+		timer.start(xid);
+		int result = queryPrice(xid, Car.getKey(location));
+		timer.stop(xid);
+		return result;
 	}
 
 	// Returns room price at this location
 	public int queryRoomsPrice(int xid, String location) throws RemoteException
 	{
-		return queryPrice(xid, Room.getKey(location));
+		timer.start(xid);
+		int result = queryPrice(xid, Room.getKey(location));
+		timer.stop(xid);
+		return result;
 	}
 
 	public RMHashMap queryCustomerReservations(int xid, int customerID) throws RemoteException 
 	{
+		timer.start(xid);
 		Trace.info("RM::queryCustomerReservations(" + xid + ", " + customerID + ") called");
 		Customer customer = (Customer)readData(xid, Customer.getKey(customerID));
 		if (customer == null)
 		{
 			Trace.warn("RM::queryCustomerReservations(" + xid + ", " + customerID + ") failed--customer doesn't exist");
 			// NOTE: don't change this--WC counts on this value indicating a customer does not exist...
+			timer.stop(xid);
 			return null;
 		}
 		else
 		{
 			Trace.info("RM::queryCustomerReservations(" + xid + ", " + customerID + ") succeeded.");
+			timer.stop(xid);
 			return customer.getReservations();
 		}
 	}
@@ -301,6 +338,7 @@ public class ResourceManager implements IResourceManager
 
 	public int newCustomer(int xid) throws RemoteException
 	{
+		timer.start(xid);
         	Trace.info("RM::newCustomer(" + xid + ") called");
 		// Generate a globally unique ID for the new customer
 		int cid = Integer.parseInt(String.valueOf(xid) +
@@ -309,11 +347,13 @@ public class ResourceManager implements IResourceManager
 		Customer customer = new Customer(cid);
 		writeData(xid, customer.getKey(), customer);
 		Trace.info("RM::newCustomer(" + cid + ") returns ID=" + cid);
+		timer.stop(xid);
 		return cid;
 	}
 
 	public boolean newCustomer(int xid, int customerID) throws RemoteException
 	{
+		timer.start(xid);
 		Trace.info("RM::newCustomer(" + xid + ", " + customerID + ") called");
 		Customer customer = (Customer)readData(xid, Customer.getKey(customerID));
 		if (customer == null)
@@ -321,22 +361,26 @@ public class ResourceManager implements IResourceManager
 			customer = new Customer(customerID);
 			writeData(xid, customer.getKey(), customer);
 			Trace.info("RM::newCustomer(" + xid + ", " + customerID + ") created a new customer");
+			timer.stop(xid);
 			return true;
 		}
 		else
 		{
 			Trace.info("INFO: RM::newCustomer(" + xid + ", " + customerID + ") failed--customer already exists");
+			timer.stop(xid);
 			return false;
 		}
 	}
 
 	public boolean deleteCustomer(int xid, int customerID) throws RemoteException
 	{
+		timer.start(xid);
 		Trace.info("RM::deleteCustomer(" + xid + ", " + customerID + ") called");
 		Customer customer = (Customer)readData(xid, Customer.getKey(customerID));
 		if (customer == null)
 		{
 			Trace.warn("RM::deleteCustomer(" + xid + ", " + customerID + ") failed--customer doesn't exist");
+			timer.stop(xid);
 			return false;
 		}
 		else
@@ -357,6 +401,7 @@ public class ResourceManager implements IResourceManager
 			// Remove the customer from the storage
 			removeData(xid, customer.getKey());
 			Trace.info("RM::deleteCustomer(" + xid + ", " + customerID + ") succeeded");
+			timer.stop(xid);
 			return true;
 		}
 	}
@@ -364,24 +409,35 @@ public class ResourceManager implements IResourceManager
 	// Adds flight reservation to this customer
 	public boolean reserveFlight(int xid, int customerID, int flightNum) throws RemoteException
 	{
-		return reserveItem(xid, customerID, Flight.getKey(flightNum), String.valueOf(flightNum));
+		timer.start(xid);
+		boolean result = reserveItem(xid, customerID, Flight.getKey(flightNum), String.valueOf(flightNum));
+		timer.stop(xid);
+		return result;
 	}
 
 	// Adds car reservation to this customer
 	public boolean reserveCar(int xid, int customerID, String location) throws RemoteException
 	{
-		return reserveItem(xid, customerID, Car.getKey(location), location);
+		timer.start(xid);
+		boolean result = reserveItem(xid, customerID, Car.getKey(location), location);
+		timer.stop(xid);
+		return result;
 	}
 
 	// Adds room reservation to this customer
 	public boolean reserveRoom(int xid, int customerID, String location) throws RemoteException
 	{
-		return reserveItem(xid, customerID, Room.getKey(location), location);
+		timer.start(xid);
+		boolean result = reserveItem(xid, customerID, Room.getKey(location), location);
+		timer.stop(xid);
+		return result;
 	}
 
 	// Reserve bundle 
 	public boolean bundle(int xid, int customerId, Vector<String> flightNumbers, String location, boolean car, boolean room) throws RemoteException
 	{
+		timer.start(xid);
+		timer.stop(xid);
 		return false;
 	}
 
@@ -396,23 +452,31 @@ public class ResourceManager implements IResourceManager
 		return 0;
 	}
 
-	@Override
-	public boolean commit(int transactionId)
-			throws RemoteException, TransactionAbortedException, InvalidTransactionException {
-		// TODO Auto-generated method stub
-		return false;
-	}
+    @Override
+    public boolean commit(int transactionId) 
+            throws RemoteException, TransactionAbortedException, InvalidTransactionException {
+        // TODO Auto-generated method stub
+        timer.commit(transactionId);
+        return true;
+    }
 
 	@Override
 	public void abort(int transactionId) throws RemoteException, InvalidTransactionException {
 		// TODO Auto-generated method stub
-		
+		timer.start(transactionId);
+		timer.stop(transactionId);
 	}
 
 	@Override
 	public boolean shutdown() throws RemoteException {
 		// TODO Auto-generated method stub
 		return false;
+	}
+
+	@Override
+	public Vector<DataPoint> queryTransactionResponseTime(int id, Vector<DataPoint> dataPoints) throws RemoteException {
+		dataPoints.add(timer.getDataPoint(LayerTypes.DATABASE));
+		return dataPoints;
 	}
 }
  

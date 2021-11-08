@@ -1,5 +1,6 @@
 package Client.DataGatherer;
 
+import java.io.OutputStream;
 import java.io.PrintStream;
 import java.util.ArrayList;
 
@@ -45,6 +46,10 @@ public class DataGatherer{
 
         int clientTransactionInterval = (1000 * aClientCount / aThroughput);
 
+		PrintStream initialStream = System.out;	
+		// Prevent everything from writing to console, we will give DataClient a dedicated stream
+		System.setOut(new PrintStream(OutputStream.nullOutputStream()));
+
         ArrayList<TestClient> clients = new ArrayList<>();
         ArrayList<Thread> threads = new ArrayList<>();
         for(int i = 0; i < aClientCount; i++){
@@ -52,6 +57,10 @@ public class DataGatherer{
             threads.add(new Thread(clients.get(i)));
             threads.get(i).start();
         }
+		DataClient dataClient = new DataClient(aHost, aPort, aServerName, aGroupName, clients);
+		dataClient.setOut(initialStream);
+		Thread dataThread = new Thread(dataClient);
+		dataThread.run();
 
 	}
 

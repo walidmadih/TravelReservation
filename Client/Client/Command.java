@@ -31,6 +31,10 @@ public enum Command {
 
 	Bundle("Book N flight numbers, and optionally a room and/or car at a location", "<xid>,<CustomerID>,<FlightNumber1>...<FlightNumberN>,<Location>,<Car-Y/N>,<Room-Y/N>"),
 
+	QueryTransactionResponseTime("Get average response time of transactions since last query.", "<xid>, <Vector<DataPoint>>"),
+
+	Commit("Commit the transaction", "<xid>"),
+
 	Quit("Exit the client application", "");
 
 	String m_description;

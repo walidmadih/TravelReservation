@@ -1,5 +1,6 @@
 package Client.DataGatherer;
 
+import java.io.OutputStream;
 import java.io.PrintStream;
 
 import javax.sound.sampled.SourceDataLine;
@@ -16,6 +17,9 @@ public class TestClient extends RMIClient implements Runnable
     private int aTransactionInterval = 500;
     // transactionTime belongs to [aTransactionInterval - aTransactionIntervalVariation, aTransactionInterval + aTransactionIntervalVariation]
     private int aTransactionIntervalVariation = 200;
+
+    private Transaction transaction;
+    private boolean randomTransactions = true;
 
     public TestClient(String pHost, int pPort, String pServerName, String pGroupName){
         this(pHost, pPort, pServerName, pGroupName, 500);
@@ -52,14 +56,15 @@ public class TestClient extends RMIClient implements Runnable
                 int upper = aTransactionInterval + aTransactionIntervalVariation;
                 int lower = aTransactionInterval - aTransactionIntervalVariation;
                 int targetTime = (int) (Math.random() * (upper - lower)) + lower;;
-                int transactionStartTime = (int) System.currentTimeMillis();
 
-                // TODO: Use transaction timer instead to calculate transaction time
-                Transaction transaction = new Transaction(OperationGenerator.generateRandomOperations(), this);
+                if(randomTransactions || transaction == null)
+                {
+                    transaction = new Transaction(OperationGenerator.generateRandomOperations(), this);
+                }
                 transaction.start();
-                int transactionEndTime = (int) System.currentTimeMillis();
 
-                int sleepTime = Math.max(targetTime - (transactionEndTime - transactionStartTime), 0);
+                System.out.println(String.format("Transaction XID: %d\t\tOperation Count: %d\t\tTransaction Time: %d\t\tCOMPLETED", transaction.getXid(), transaction.getTotalCount(), transaction.getTransactionTime()));
+                int sleepTime = Math.max(targetTime - (transaction.getTransactionTime()), 0);
 
                 try{
                     Thread.sleep(sleepTime);

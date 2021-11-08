@@ -77,11 +77,20 @@ public class OperationGenerator{
 
     public static LinkedList<Operation> generateRandomOperations(){
         LinkedList<Operation> operations = new LinkedList<>();
-        int operationsCount = (int) Math.random()*(maxOperationsCount - 1) + 1;
+        int operationsCount = (int) (Math.random()*(maxOperationsCount - 1) + 1);
         for(int i = 0; i < operationsCount; i++){
             operations.add(generateRandomOperation());
         }
         return operations;
+    }
+
+    public static LinkedList<Operation> generateTimeDataTransaction(){
+        LinkedList<Operation> ll =  new LinkedList<Operation>();
+        Command cmd = Command.QueryTransactionResponseTime;
+        Vector<String> arguments = new Vector<>();
+        arguments.add(cmd.name());
+        ll.add(new Operation(cmd, arguments));
+        return ll;
     }
 
 }
