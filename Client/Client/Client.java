@@ -98,7 +98,7 @@ public abstract class Client
 			{
 				checkArgumentsCount(1,arguments.size());
 				int trans_id = m_resourceManager.start();
-				System.out.println("Your transaction id is"+trans_id);
+				System.out.println("Your transaction id is "+trans_id);
 				break;
 			}
 			case AddFlight: {
