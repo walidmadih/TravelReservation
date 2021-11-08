@@ -38,13 +38,6 @@ public class ResourceManager implements IResourceManager
 		}
 	}
 
-	public void Commit(){
-
-	}
-
-	public void abort(){
-
-	}
 	// Writes a data item
 	protected void writeData(int xid, String key, RMItem value)
 	{
@@ -179,7 +172,7 @@ public class ResourceManager implements IResourceManager
 				return true;
 			} else {
 				System.out.println("The input arguments for the lock is wrong, lock can't be granted. ");
-				return false;
+				throw new TransactionAbortedException();
 			}
 		}
 		catch(DeadlockException deadlock){
@@ -213,7 +206,7 @@ public class ResourceManager implements IResourceManager
 			}
 			else{
 				System.out.println("The input arguments for the lock is wrong, lock can't be granted. ");
-				return false;
+				throw new TransactionAbortedException();
 			}
 		}
 		catch(DeadlockException deadlock){
@@ -247,7 +240,7 @@ public class ResourceManager implements IResourceManager
 			}
 			else{
 				System.out.println("The input arguments for the lock is wrong, lock can't be granted. ");
-				return false;
+				throw new TransactionAbortedException();
 			}
 		}
 		catch(DeadlockException deadlock){
@@ -260,11 +253,15 @@ public class ResourceManager implements IResourceManager
 	{
 		try {
 			if(lManager.Lock(xid,String.valueOf(flightNum), TransactionLockObject.LockType.LOCK_WRITE)) {
-				return deleteItem(xid, Flight.getKey(flightNum));
+				boolean return_val = deleteItem(xid, Flight.getKey(flightNum));
+				if(!return_val){
+					throw new TransactionAbortedException();
+				}
+				return return_val;
 			}
 			else{
 				System.out.println("The input arguments for the lock is wrong, lock can't be granted. ");
-				return false;
+				throw new TransactionAbortedException();
 			}
 		}
 		catch(DeadlockException deadlock){
@@ -277,11 +274,15 @@ public class ResourceManager implements IResourceManager
 	{
 		try {
 			if(lManager.Lock(xid,location, TransactionLockObject.LockType.LOCK_WRITE)) {
-				return deleteItem(xid, Car.getKey(location));
+				boolean return_val = deleteItem(xid, Car.getKey(location));
+				if(!return_val){
+					throw new TransactionAbortedException();
+				}
+				return return_val;
 			}
 			else{
 				System.out.println("The input arguments for the lock is wrong, lock can't be granted. ");
-				return false;
+				throw new TransactionAbortedException();
 			}
 		}
 		catch(DeadlockException deadlock){
@@ -294,11 +295,15 @@ public class ResourceManager implements IResourceManager
 	{
 		try {
 			if(lManager.Lock(xid,location, TransactionLockObject.LockType.LOCK_WRITE)) {
-				return deleteItem(xid, Room.getKey(location));
+				boolean return_val = deleteItem(xid, Room.getKey(location));
+				if(!return_val){
+					throw new TransactionAbortedException();
+				}
+				return return_val;
 			}
 			else{
 				System.out.println("The input arguments for the lock is wrong, lock can't be granted. ");
-				return false;
+				throw new TransactionAbortedException();
 			}
 		}
 		catch(DeadlockException deadlock){
@@ -315,7 +320,7 @@ public class ResourceManager implements IResourceManager
 			}
 			else{
 				System.out.println("The input arguments for the lock is wrong, lock can't be granted. ");
-				return -1;
+				throw new TransactionAbortedException();
 			}
 		}
 		catch(DeadlockException deadlock){
@@ -332,7 +337,7 @@ public class ResourceManager implements IResourceManager
 			}
 			else{
 				System.out.println("The input arguments for the lock is wrong, lock can't be granted. ");
-				return -1;
+				throw new TransactionAbortedException();
 			}
 		}
 		catch(DeadlockException deadlock){
@@ -349,7 +354,7 @@ public class ResourceManager implements IResourceManager
 			}
 			else{
 				System.out.println("The input arguments for the lock is wrong, lock can't be granted. ");
-				return -1;
+				throw new TransactionAbortedException();
 			}
 		}
 		catch(DeadlockException deadlock){
@@ -358,37 +363,78 @@ public class ResourceManager implements IResourceManager
 	}
 
 	// Returns price of a seat in this flight
-	public int queryFlightPrice(int xid, int flightNum) throws RemoteException
+	public int queryFlightPrice(int xid, int flightNum) throws RemoteException,TransactionAbortedException
 	{
-		return queryPrice(xid, Flight.getKey(flightNum));
+		try {
+			if(lManager.Lock(xid,String.valueOf(flightNum), TransactionLockObject.LockType.LOCK_READ)) {
+				return queryPrice(xid, Flight.getKey(flightNum));
+			}
+			else{
+				System.out.println("The input arguments for the lock is wrong, lock can't be granted. ");
+				throw new TransactionAbortedException();
+			}
+		}
+		catch(DeadlockException deadlock){
+			throw new TransactionAbortedException();
+		}
 	}
 
 	// Returns price of cars at this location
-	public int queryCarsPrice(int xid, String location) throws RemoteException
+	public int queryCarsPrice(int xid, String location) throws RemoteException,TransactionAbortedException
 	{
-		return queryPrice(xid, Car.getKey(location));
+		try {
+			if(lManager.Lock(xid,location, TransactionLockObject.LockType.LOCK_READ)) {
+				return queryPrice(xid, Car.getKey(location));
+			}
+			else{
+				System.out.println("The input arguments for the lock is wrong, lock can't be granted. ");
+				throw new TransactionAbortedException();
+			}
+		}
+		catch(DeadlockException deadlock){
+			throw new TransactionAbortedException();
+		}
 	}
 
 	// Returns room price at this location
-	public int queryRoomsPrice(int xid, String location) throws RemoteException
+	public int queryRoomsPrice(int xid, String location) throws RemoteException,TransactionAbortedException
 	{
-		return queryPrice(xid, Room.getKey(location));
+		try {
+			if(lManager.Lock(xid,location, TransactionLockObject.LockType.LOCK_READ)) {
+				return queryPrice(xid, Room.getKey(location));
+			}
+			else{
+				System.out.println("The input arguments for the lock is wrong, lock can't be granted. ");
+				throw new TransactionAbortedException();
+			}
+		}
+		catch(DeadlockException deadlock){
+			throw new TransactionAbortedException();
+		}
 	}
 
-	public RMHashMap queryCustomerReservations(int xid, int customerID) throws RemoteException 
+	public RMHashMap queryCustomerReservations(int xid, int customerID) throws RemoteException,TransactionAbortedException
 	{
-		Trace.info("RM::queryCustomerReservations(" + xid + ", " + customerID + ") called");
-		Customer customer = (Customer)readData(xid, Customer.getKey(customerID));
-		if (customer == null)
-		{
-			Trace.warn("RM::queryCustomerReservations(" + xid + ", " + customerID + ") failed--customer doesn't exist");
-			// NOTE: don't change this--WC counts on this value indicating a customer does not exist...
-			return null;
+		try {
+			if (lManager.Lock(xid, String.valueOf(customerID), TransactionLockObject.LockType.LOCK_READ)) {
+				Trace.info("RM::queryCustomerReservations(" + xid + ", " + customerID + ") called");
+				Customer customer = (Customer) readData(xid, Customer.getKey(customerID));
+				if (customer == null) {
+					Trace.warn("RM::queryCustomerReservations(" + xid + ", " + customerID + ") failed--customer doesn't exist");
+					// NOTE: don't change this--WC counts on this value indicating a customer does not exist...
+					throw new TransactionAbortedException();
+				} else {
+					Trace.info("RM::queryCustomerReservations(" + xid + ", " + customerID + ") succeeded.");
+					return customer.getReservations();
+				}
+			}
+			else{
+				System.out.println("The input arguments for the lock is wrong, lock can't be granted. ");
+				throw new TransactionAbortedException();
+			}
 		}
-		else
-		{
-			Trace.info("RM::queryCustomerReservations(" + xid + ", " + customerID + ") succeeded.");
-			return customer.getReservations();
+		catch(DeadlockException deadlock){
+			throw new TransactionAbortedException();
 		}
 	}
 
@@ -435,12 +481,12 @@ public class ResourceManager implements IResourceManager
 					return true;
 				} else {
 					Trace.info("INFO: RM::newCustomer(" + xid + ", " + customerID + ") failed--customer already exists");
-					return false;
+					throw new TransactionAbortedException();
 				}
 			}
 			else{
 				System.out.println("The input arguments for the lock is wrong, lock can't be granted. ");
-				return false;
+				throw new TransactionAbortedException();
 			}
 		}
 		catch(DeadlockException deadlock){
@@ -456,7 +502,7 @@ public class ResourceManager implements IResourceManager
 				Customer customer = (Customer) readData(xid, Customer.getKey(customerID));
 				if (customer == null) {
 					Trace.warn("RM::deleteCustomer(" + xid + ", " + customerID + ") failed--customer doesn't exist");
-					return false;
+					throw new TransactionAbortedException();
 				} else {
 					// Increase the reserved numbers of all reservable items which the customer reserved.
 					RMHashMap reservations = customer.getReservations();
@@ -478,7 +524,7 @@ public class ResourceManager implements IResourceManager
 			}
 			else{
 				System.out.println("The input arguments for the lock is wrong, lock can't be granted. ");
-				return false;
+				throw new TransactionAbortedException();
 			}
 		}
 		catch(DeadlockException deadlock){
@@ -488,21 +534,66 @@ public class ResourceManager implements IResourceManager
 
 
 	// Adds flight reservation to this customer
-	public boolean reserveFlight(int xid, int customerID, int flightNum) throws RemoteException
+	public boolean reserveFlight(int xid, int customerID, int flightNum) throws RemoteException,TransactionAbortedException
 	{
-		return reserveItem(xid, customerID, Flight.getKey(flightNum), String.valueOf(flightNum));
+		try {
+			if(lManager.Lock(xid,String.valueOf(customerID), TransactionLockObject.LockType.LOCK_WRITE) && lManager.Lock(xid,String.valueOf(flightNum), TransactionLockObject.LockType.LOCK_WRITE) ) {
+				boolean return_val = reserveItem(xid, customerID, Flight.getKey(flightNum), String.valueOf(flightNum));
+				if(!return_val){
+					throw new TransactionAbortedException();
+				}
+				return return_val;
+			}
+			else{
+				System.out.println("The input arguments for the lock is wrong, lock can't be granted. ");
+				throw new TransactionAbortedException();
+			}
+		}
+		catch(DeadlockException deadlock){
+			throw new TransactionAbortedException();
+		}
 	}
 
 	// Adds car reservation to this customer
-	public boolean reserveCar(int xid, int customerID, String location) throws RemoteException
+	public boolean reserveCar(int xid, int customerID, String location) throws RemoteException,TransactionAbortedException
 	{
-		return reserveItem(xid, customerID, Car.getKey(location), location);
+		try {
+			if(lManager.Lock(xid,String.valueOf(customerID), TransactionLockObject.LockType.LOCK_WRITE) && lManager.Lock(xid,location, TransactionLockObject.LockType.LOCK_WRITE) ) {
+				boolean return_val = reserveItem(xid, customerID, Car.getKey(location), location);
+				if(!return_val){
+					throw new TransactionAbortedException();
+				}
+				return return_val;
+			}
+			else{
+				System.out.println("The input arguments for the lock is wrong, lock can't be granted. ");
+				throw new TransactionAbortedException();
+			}
+		}
+		catch(DeadlockException deadlock){
+			throw new TransactionAbortedException();
+		}
 	}
 
 	// Adds room reservation to this customer
-	public boolean reserveRoom(int xid, int customerID, String location) throws RemoteException
+	public boolean reserveRoom(int xid, int customerID, String location) throws RemoteException,TransactionAbortedException
 	{
-		return reserveItem(xid, customerID, Room.getKey(location), location);
+		try {
+			if(lManager.Lock(xid,String.valueOf(customerID), TransactionLockObject.LockType.LOCK_WRITE) && lManager.Lock(xid,location, TransactionLockObject.LockType.LOCK_WRITE) ) {
+				boolean return_val = reserveItem(xid, customerID, Room.getKey(location), location);
+				if(!return_val){
+					throw new TransactionAbortedException();
+				}
+				return return_val;
+			}
+			else{
+				System.out.println("The input arguments for the lock is wrong, lock can't be granted. ");
+				throw new TransactionAbortedException();
+			}
+		}
+		catch(DeadlockException deadlock){
+			throw new TransactionAbortedException();
+		}
 	}
 
 	// Reserve bundle 
