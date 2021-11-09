@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Vector;
+import java.util.HashSet;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -34,6 +35,7 @@ public class RMIMiddleware implements IResourceManager{
     private AtomicInteger customerIDGenerator = new AtomicInteger(0);
     private HashMap<Integer, List<IResourceManager>> trans_active = new HashMap();
     private HashMap<Integer,Long> time_to_live = new HashMap();
+    private HashSet<Integer> transactionsToNotify = new HashSet();
     private long TTL = 15000;
     public static void main(String args[]){
         String host1 = args[0];
@@ -131,7 +133,7 @@ public class RMIMiddleware implements IResourceManager{
     public boolean addFlight(int id, int flightNum, int flightSeats, int flightPrice) throws RemoteException,TransactionAbortedException,InvalidTransactionException,TransactionAlreadyWaitingException{
         try {
             long time = System.currentTimeMillis();
-            checkTTL(time);
+            checkTTL(time, id);
             if(!trans_active.containsKey(id)) {
                 throw new InvalidTransactionException();
             }
@@ -159,7 +161,7 @@ public class RMIMiddleware implements IResourceManager{
     public boolean addCars(int id, String location, int numCars, int price) throws RemoteException,TransactionAbortedException,InvalidTransactionException,TransactionAlreadyWaitingException{
         try {
             long time = System.currentTimeMillis();
-            checkTTL(time);
+            checkTTL(time, id);
             if(!trans_active.containsKey(id)){
                 throw new InvalidTransactionException();
             }
@@ -187,7 +189,7 @@ public class RMIMiddleware implements IResourceManager{
     public boolean addRooms(int id, String location, int numRooms, int price) throws RemoteException,TransactionAbortedException,InvalidTransactionException,TransactionAlreadyWaitingException{
         try {
             long time = System.currentTimeMillis();
-            checkTTL(time);
+            checkTTL(time, id);
             if(!trans_active.containsKey(id)){
                 throw new InvalidTransactionException();
             }
@@ -215,7 +217,7 @@ public class RMIMiddleware implements IResourceManager{
     public int newCustomer(int id) throws RemoteException,TransactionAbortedException,InvalidTransactionException,TransactionAlreadyWaitingException{
         try {
             long time = System.currentTimeMillis();
-            checkTTL(time);
+            checkTTL(time, id);
             if(!trans_active.containsKey(id)){
                 throw new InvalidTransactionException();
             }
@@ -256,7 +258,7 @@ public class RMIMiddleware implements IResourceManager{
     public boolean newCustomer(int id, int cid) throws RemoteException,InvalidTransactionException,TransactionAbortedException,TransactionAlreadyWaitingException{
         try {
             long time = System.currentTimeMillis();
-            checkTTL(time);
+            checkTTL(time, id);
             if(!trans_active.containsKey(id)){
                 throw new InvalidTransactionException();
             }
@@ -290,7 +292,7 @@ public class RMIMiddleware implements IResourceManager{
     public boolean deleteFlight(int id, int flightNum) throws RemoteException,InvalidTransactionException,TransactionAbortedException,TransactionAlreadyWaitingException{
         try {
             long time = System.currentTimeMillis();
-            checkTTL(time);
+            checkTTL(time, id);
             if(!trans_active.containsKey(id)){
                 throw new InvalidTransactionException();
             }
@@ -318,7 +320,7 @@ public class RMIMiddleware implements IResourceManager{
     public boolean deleteCars(int id, String location) throws RemoteException,InvalidTransactionException,TransactionAbortedException,TransactionAlreadyWaitingException{
         try {
             long time = System.currentTimeMillis();
-            checkTTL(time);
+            checkTTL(time, id);
             if(!trans_active.containsKey(id)){
                 throw new InvalidTransactionException();
             }
@@ -346,7 +348,7 @@ public class RMIMiddleware implements IResourceManager{
     public boolean deleteRooms(int id, String location) throws RemoteException,InvalidTransactionException,TransactionAbortedException,TransactionAlreadyWaitingException{
         try {
             long time = System.currentTimeMillis();
-            checkTTL(time);
+            checkTTL(time, id);
             if(!trans_active.containsKey(id)){
                 throw new InvalidTransactionException();
             }
@@ -374,7 +376,7 @@ public class RMIMiddleware implements IResourceManager{
     public boolean deleteCustomer(int id, int customerID) throws RemoteException,InvalidTransactionException,TransactionAbortedException,TransactionAlreadyWaitingException{
         try {
             long time = System.currentTimeMillis();
-            checkTTL(time);
+            checkTTL(time, id);
             if(!trans_active.containsKey(id)){
                 throw new InvalidTransactionException();
             }
@@ -408,7 +410,7 @@ public class RMIMiddleware implements IResourceManager{
     public int queryFlight(int id, int flightNumber) throws RemoteException,InvalidTransactionException,TransactionAbortedException,TransactionAlreadyWaitingException{
         try {
             long time = System.currentTimeMillis();
-            checkTTL(time);
+            checkTTL(time, id);
             if(!trans_active.containsKey(id)){
                 throw new InvalidTransactionException();
             }
@@ -442,7 +444,7 @@ public class RMIMiddleware implements IResourceManager{
     public int queryCars(int id, String location) throws RemoteException,InvalidTransactionException,TransactionAbortedException,TransactionAlreadyWaitingException{
         try {
             long time = System.currentTimeMillis();
-            checkTTL(time);
+            checkTTL(time, id);
 
             if(!trans_active.containsKey(id)){
                 throw new InvalidTransactionException();
@@ -477,7 +479,7 @@ public class RMIMiddleware implements IResourceManager{
     public int queryRooms(int id, String location) throws RemoteException,InvalidTransactionException,TransactionAbortedException,TransactionAlreadyWaitingException{
         try {
             long time = System.currentTimeMillis();
-            checkTTL(time);
+            checkTTL(time, id);
             if(!trans_active.containsKey(id)){
                 throw new InvalidTransactionException();
             }
@@ -510,7 +512,7 @@ public class RMIMiddleware implements IResourceManager{
     public String queryCustomerInfo(int id, int customerID) throws RemoteException,InvalidTransactionException, TransactionAbortedException, TransactionAlreadyWaitingException {
         try {
             long time = System.currentTimeMillis();
-            checkTTL(time);
+            checkTTL(time, id);
             if(!trans_active.containsKey(id)){
                 throw new InvalidTransactionException();
             }
@@ -565,7 +567,7 @@ public class RMIMiddleware implements IResourceManager{
     public int queryFlightPrice(int id, int flightNumber) throws RemoteException,InvalidTransactionException,TransactionAbortedException, TransactionAlreadyWaitingException{
         try {
             long time = System.currentTimeMillis();
-            checkTTL(time);
+            checkTTL(time, id);
             if(!trans_active.containsKey(id)){
                 throw new InvalidTransactionException();
             }
@@ -598,7 +600,7 @@ public class RMIMiddleware implements IResourceManager{
     public int queryCarsPrice(int id, String location) throws RemoteException,InvalidTransactionException,TransactionAbortedException, TransactionAlreadyWaitingException{
         try {
             long time = System.currentTimeMillis();
-            checkTTL(time);
+            checkTTL(time, id);
 
             if(!trans_active.containsKey(id)){
                 throw new InvalidTransactionException();
@@ -633,7 +635,7 @@ public class RMIMiddleware implements IResourceManager{
     public int queryRoomsPrice(int id, String location) throws RemoteException,InvalidTransactionException,TransactionAbortedException,TransactionAlreadyWaitingException{
         try {
             long time = System.currentTimeMillis();
-            checkTTL(time);
+            checkTTL(time, id);
             if(!trans_active.containsKey(id)){
                 throw new InvalidTransactionException();
             }
@@ -667,7 +669,7 @@ public class RMIMiddleware implements IResourceManager{
         try {
 
             long time = System.currentTimeMillis();
-            checkTTL(time);
+            checkTTL(time, id);
             if(!trans_active.containsKey(id)){
                 throw new InvalidTransactionException();
             }
@@ -704,7 +706,7 @@ public class RMIMiddleware implements IResourceManager{
     public boolean reserveCar(int id, int customerID, String location) throws RemoteException,InvalidTransactionException,TransactionAbortedException,TransactionAlreadyWaitingException{
         try {
             long time = System.currentTimeMillis();
-            checkTTL(time);
+            checkTTL(time, id);
             if(!trans_active.containsKey(id)){
                 throw new InvalidTransactionException();
             }
@@ -742,7 +744,7 @@ public class RMIMiddleware implements IResourceManager{
     public boolean reserveRoom(int id, int customerID, String location) throws RemoteException,TransactionAbortedException,InvalidTransactionException,TransactionAlreadyWaitingException{
         try {
             long time = System.currentTimeMillis();
-            checkTTL(time);
+            checkTTL(time, id);
             if(!trans_active.containsKey(id)){
                 throw new InvalidTransactionException();
             }
@@ -779,7 +781,7 @@ public class RMIMiddleware implements IResourceManager{
     public boolean bundle(int id, int customerID, Vector<String> flightNumbers, String location, boolean car, boolean room) throws RemoteException,TransactionAbortedException,InvalidTransactionException,TransactionAlreadyWaitingException {
         try {
             long time = System.currentTimeMillis();
-            checkTTL(time);
+            checkTTL(time, id);
             if (!trans_active.containsKey(id)) {
                 throw new InvalidTransactionException();
             }
@@ -832,19 +834,41 @@ public class RMIMiddleware implements IResourceManager{
         return server_name;
     }
 
-    private void checkTTL(long currentTime) throws RemoteException, InvalidTransactionException{
-        for(var entry : time_to_live.entrySet()){
-            long prev_time = entry.getValue();
-            if((currentTime - prev_time) > TTL){
-                int trans_ID = entry.getKey();
-                List<IResourceManager> RM_used = trans_active.get(trans_ID);
-                for (IResourceManager manager:RM_used){
-                    manager.abort(trans_ID);
+    private void checkTTL(long currentTime, int xid) throws RemoteException, InvalidTransactionException, TransactionAbortedException{
+        
+        boolean throwException = false;
+
+        if (transactionsToNotify.contains(xid))
+            throwException = true;
+
+        for (var entry : time_to_live.entrySet())
+        {
+            long prevTime = entry.getValue();
+
+            if (currentTime - prevTime > TTL)
+            {
+                int id = entry.getKey();
+
+                if (id == xid)
+                    throwException = true;
+                else
+                    transactionsToNotify.add(id);
+
+                List<IResourceManager> RM_used = trans_active.get(id);
+
+                if (RM_used != null){
+
+                    for(IResourceManager RM:RM_used){
+                        RM.abort(id);
+                    }
+                    trans_active.remove(id);
                 }
-                trans_active.remove(trans_ID);
             }
         }
-        time_to_live.entrySet().removeIf(entry -> (currentTime - entry.getValue()) > TTL);
+        time_to_live.entrySet().removeIf(entry -> currentTime - entry.getValue() > TTL);
+
+        if (throwException)
+            throw new TransactionAbortedException();
     }
 
     private void addRMToActiveTransaction(int id, boolean addFlightRM, boolean addCarsRM, boolean addRoomsRM)
@@ -925,10 +949,37 @@ public class RMIMiddleware implements IResourceManager{
             }
         }
 
-        manager_Flights.shutdown();
-        manager_Cars.shutdown();
-        manager_Rooms.shutdown();
-        System.exit(0);
+        (new GracefulExiter(manager_Flights)).start();
+        (new GracefulExiter(manager_Cars)).start();
+        (new GracefulExiter(manager_Rooms)).start();
+        (new GracefulExiter(this)).start();
         return true;
+    }
+
+    public class GracefulExiter extends Thread {
+        private IResourceManager manager;
+
+        public GracefulExiter(IResourceManager manager)
+        {
+            this.manager = manager;
+        }
+
+        public void run()
+        {
+            if (manager instanceof RMIMiddleware){
+                try{
+                    Thread.sleep(500);
+                }
+                catch (InterruptedException e) {}
+                System.exit(0);
+            }
+            else{
+                try {
+                    manager.shutdown();
+                }
+                catch (RemoteException e) {}
+            }
+                
+        }
     }
 }
