@@ -73,7 +73,7 @@ public class TestClient extends RMIClient implements Runnable
                 transaction.start();
 
                 System.out.println(String.format("Transaction XID: %d\t\tOperation Count: %d\t\tTransaction Time: %d\t\tCOMPLETED", transaction.getXid(), transaction.getTotalCount(), transaction.getTransactionTime()));
-                int sleepTime = Math.max(targetTime - (transaction.getTransactionTime()), 0);
+                long sleepTime = Math.max(targetTime - (transaction.getTransactionTime()), 0);
 
                 try{
                     Thread.sleep(sleepTime);
