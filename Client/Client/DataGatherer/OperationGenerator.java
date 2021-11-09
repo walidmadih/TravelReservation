@@ -104,17 +104,16 @@ public class OperationGenerator{
     public static Operation generateCommitOperation(int xid){
         Command cmd = Command.Commit;
         Vector<String> arguments = new Vector<String>();
-        arguments.add(String.valueOf(xid));
         arguments.add(cmd.name());
+        arguments.add(String.valueOf(xid));
         return new Operation(cmd, arguments);
     }
 
     public static Operation generateAbortOperation(int xid){
         Command cmd = Command.Abort;
         Vector<String> arguments = new Vector<String>();
-        arguments.add(String.valueOf(xid));
         arguments.add(cmd.name());
-
+        arguments.add(String.valueOf(xid));
         return new Operation(cmd, arguments);
     }
 
