@@ -42,6 +42,7 @@ public class RMIMiddleware implements IResourceManager{
     private HashMap<Integer, List<IResourceManager>> trans_active = new HashMap();
     private HashMap<Integer,Long> time_to_live = new HashMap();
     private HashSet<Integer> transactionsToNotify = new HashSet();
+    private final Object lock = new Object();
     private long TTL = 15000;
     public static void main(String args[]){
         String host1 = args[0];
@@ -144,9 +145,12 @@ public class RMIMiddleware implements IResourceManager{
             if(!trans_active.containsKey(id)) {
                 throw new InvalidTransactionException();
             }
-            time_to_live.replace(id,time);
 
-            addRMToActiveTransaction(id, true, false, false);
+            synchronized (lock) {
+                time_to_live.replace(id, time);
+
+                addRMToActiveTransaction(id, true, false, false);
+            }
 
             timer.stop(id);
 
@@ -163,8 +167,10 @@ public class RMIMiddleware implements IResourceManager{
                     RM.abort(id);
                     timer.start(id);
                 }
-                trans_active.remove(id);
-                time_to_live.remove(id);
+                synchronized (lock) {
+                    trans_active.remove(id);
+                    time_to_live.remove(id);
+                }
             }
             timer.stop(id);
             throw e;
@@ -179,9 +185,11 @@ public class RMIMiddleware implements IResourceManager{
             if(!trans_active.containsKey(id)){
                 throw new InvalidTransactionException();
             }
-            time_to_live.replace(id,time);
+            synchronized (lock) {
+                time_to_live.replace(id, time);
 
-            addRMToActiveTransaction(id, false, true, false);
+                addRMToActiveTransaction(id, false, true, false);
+            }
 
             timer.stop(id);
 
@@ -198,8 +206,10 @@ public class RMIMiddleware implements IResourceManager{
                     RM.abort(id);
                     timer.start(id);
                 }
-                trans_active.remove(id);
-                time_to_live.remove(id);
+                synchronized (lock) {
+                    trans_active.remove(id);
+                    time_to_live.remove(id);
+                }
             }
             timer.stop(id);
             throw e;
@@ -214,9 +224,11 @@ public class RMIMiddleware implements IResourceManager{
             if(!trans_active.containsKey(id)){
                 throw new InvalidTransactionException();
             }
-            time_to_live.replace(id,time);
+            synchronized (lock) {
+                time_to_live.replace(id, time);
 
-            addRMToActiveTransaction(id, false, false, true);
+                addRMToActiveTransaction(id, false, false, true);
+            }
 
             timer.stop(id);
 
@@ -233,8 +245,10 @@ public class RMIMiddleware implements IResourceManager{
                     RM.abort(id);
                     timer.start(id);
                 }
-                trans_active.remove(id);
-                time_to_live.remove(id);
+                synchronized (lock) {
+                    trans_active.remove(id);
+                    time_to_live.remove(id);
+                }
             }
             timer.stop(id);
             throw e;
@@ -249,14 +263,13 @@ public class RMIMiddleware implements IResourceManager{
             if(!trans_active.containsKey(id)){
                 throw new InvalidTransactionException();
             }
-            time_to_live.replace(id,time);
-
+            synchronized (lock) {
+                time_to_live.replace(id, time);
+                addRMToActiveTransaction(id, true, true, true);
+            }
             
 		    // Generate a globally unique ID for the new customer
 		    int cid = customerIDGenerator.getAndIncrement();
-
-
-            addRMToActiveTransaction(id, true, true, true);
 
             timer.stop(id);
 
@@ -281,8 +294,10 @@ public class RMIMiddleware implements IResourceManager{
                     RM.abort(id);
                     timer.start(id);
                 }
-                trans_active.remove(id);
-                time_to_live.remove(id);
+                synchronized (lock) {
+                    trans_active.remove(id);
+                    time_to_live.remove(id);
+                }
             }
             timer.stop(id);
             throw e;
@@ -297,9 +312,11 @@ public class RMIMiddleware implements IResourceManager{
             if(!trans_active.containsKey(id)){
                 throw new InvalidTransactionException();
             }
-            time_to_live.replace(id,time);
-            
-            addRMToActiveTransaction(id, true, true, true);
+            synchronized (lock) {
+                time_to_live.replace(id, time);
+
+                addRMToActiveTransaction(id, true, true, true);
+            }
 
             timer.stop(id);
 
@@ -322,8 +339,10 @@ public class RMIMiddleware implements IResourceManager{
                     RM.abort(id);
                     timer.start(id);
                 }
-                trans_active.remove(id);
-                time_to_live.remove(id);
+                synchronized (lock) {
+                    trans_active.remove(id);
+                    time_to_live.remove(id);
+                }
             }
             timer.stop(id);
             throw e;
@@ -338,9 +357,11 @@ public class RMIMiddleware implements IResourceManager{
             if(!trans_active.containsKey(id)){
                 throw new InvalidTransactionException();
             }
-            time_to_live.replace(id,time);
+            synchronized (lock) {
+                time_to_live.replace(id, time);
 
-            addRMToActiveTransaction(id, true, false, false);
+                addRMToActiveTransaction(id, true, false, false);
+            }
 
             timer.stop(id);
 
@@ -357,8 +378,10 @@ public class RMIMiddleware implements IResourceManager{
                     RM.abort(id);
                     timer.start(id);
                 }
-                trans_active.remove(id);
-                time_to_live.remove(id);
+                synchronized (lock) {
+                    trans_active.remove(id);
+                    time_to_live.remove(id);
+                }
             }
             timer.stop(id);
             throw e;
@@ -373,9 +396,11 @@ public class RMIMiddleware implements IResourceManager{
             if(!trans_active.containsKey(id)){
                 throw new InvalidTransactionException();
             }
-            time_to_live.replace(id,time);
+            synchronized (lock) {
+                time_to_live.replace(id, time);
 
-            addRMToActiveTransaction(id, false, true, false);
+                addRMToActiveTransaction(id, false, true, false);
+            }
 
             timer.stop(id);
 
@@ -388,12 +413,14 @@ public class RMIMiddleware implements IResourceManager{
             if (RM_used != null){
 
                 for(IResourceManager RM:RM_used){
-                    timer.stop(id);
+                    timer.stop(id)
                     RM.abort(id);
                     timer.start(id);
                 }
-                trans_active.remove(id);
-                time_to_live.remove(id);
+                synchronized (lock) {
+                    trans_active.remove(id);
+                    time_to_live.remove(id);
+                }
             }
             timer.stop(id);
             throw e;
@@ -408,9 +435,11 @@ public class RMIMiddleware implements IResourceManager{
             if(!trans_active.containsKey(id)){
                 throw new InvalidTransactionException();
             }
-            time_to_live.replace(id,time);
+            synchronized (lock) {
+                time_to_live.replace(id, time);
 
-            addRMToActiveTransaction(id, false, false, true);
+                addRMToActiveTransaction(id, false, false, true);
+            }
 
             timer.stop(id);
 
@@ -427,8 +456,10 @@ public class RMIMiddleware implements IResourceManager{
                     RM.abort(id);
                     timer.start(id);
                 }
-                trans_active.remove(id);
-                time_to_live.remove(id);
+                synchronized (lock) {
+                    trans_active.remove(id);
+                    time_to_live.remove(id);
+                }
             }
             timer.stop(id);
             throw e;
@@ -443,9 +474,11 @@ public class RMIMiddleware implements IResourceManager{
             if(!trans_active.containsKey(id)){
                 throw new InvalidTransactionException();
             }
-            time_to_live.replace(id,time);
+            synchronized (lock) {
+                time_to_live.replace(id, time);
 
-            addRMToActiveTransaction(id, true, true, true);
+                addRMToActiveTransaction(id, true, true, true);
+            }
 
             timer.stop(id);
 
@@ -468,8 +501,10 @@ public class RMIMiddleware implements IResourceManager{
                     RM.abort(id);
                     timer.start(id);
                 }
-                trans_active.remove(id);
-                time_to_live.remove(id);
+                synchronized (lock) {
+                    trans_active.remove(id);
+                    time_to_live.remove(id);
+                }
             }
             timer.stop(id);
             throw e;
@@ -484,10 +519,11 @@ public class RMIMiddleware implements IResourceManager{
             if(!trans_active.containsKey(id)){
                 throw new InvalidTransactionException();
             }
+            synchronized (lock) {
+                time_to_live.replace(id, time);
 
-            time_to_live.replace(id,time);
-
-            addRMToActiveTransaction(id, true, false, false);
+                addRMToActiveTransaction(id, true, false, false);
+            }
 
             timer.stop(id);
 
@@ -504,8 +540,10 @@ public class RMIMiddleware implements IResourceManager{
                     RM.abort(id);
                     timer.start(id);
                 }
-                trans_active.remove(id);
-                time_to_live.remove(id);
+                synchronized (lock) {
+                    trans_active.remove(id);
+                    time_to_live.remove(id);
+                }
             }
             timer.stop(id);
             throw e;
@@ -526,10 +564,11 @@ public class RMIMiddleware implements IResourceManager{
             if(!trans_active.containsKey(id)){
                 throw new InvalidTransactionException();
             }
+            synchronized (lock) {
+                time_to_live.replace(id, time);
 
-            time_to_live.replace(id,time);
-
-            addRMToActiveTransaction(id, false, true, false);
+                addRMToActiveTransaction(id, false, true, false);
+            }
 
             timer.stop(id);
 
@@ -546,8 +585,10 @@ public class RMIMiddleware implements IResourceManager{
                     RM.abort(id);
                     timer.start(id);
                 }
-                trans_active.remove(id);
-                time_to_live.remove(id);
+                synchronized (lock) {
+                    trans_active.remove(id);
+                    time_to_live.remove(id);
+                }
             }
             timer.stop(id);
             throw e;
@@ -567,9 +608,11 @@ public class RMIMiddleware implements IResourceManager{
             if(!trans_active.containsKey(id)){
                 throw new InvalidTransactionException();
             }
-            time_to_live.replace(id,time);
+            synchronized (lock) {
+                time_to_live.replace(id, time);
 
-            addRMToActiveTransaction(id, false, false, true);
+                addRMToActiveTransaction(id, false, false, true);
+            }
 
             timer.stop(id);
 
@@ -586,8 +629,10 @@ public class RMIMiddleware implements IResourceManager{
                     RM.abort(id);
                     timer.start(id);
                 }
-                trans_active.remove(id);
-                time_to_live.remove(id);
+                synchronized (lock) {
+                    trans_active.remove(id);
+                    time_to_live.remove(id);
+                }
             }
             timer.stop(id);
             throw e;
@@ -607,9 +652,11 @@ public class RMIMiddleware implements IResourceManager{
             if(!trans_active.containsKey(id)){
                 throw new InvalidTransactionException();
             }
-            time_to_live.replace(id,time);
-            //Retrieve reservations from all 3 servers
-            addRMToActiveTransaction(id, true, true, true);
+            synchronized (lock) {
+                time_to_live.replace(id, time);
+                //Retrieve reservations from all 3 servers
+                addRMToActiveTransaction(id, true, true, true);
+            }
 
             timer.stop(id);
 
@@ -643,8 +690,10 @@ public class RMIMiddleware implements IResourceManager{
                     RM.abort(id);
                     timer.start(id);
                 }
-                trans_active.remove(id);
-                time_to_live.remove(id);
+                synchronized (lock) {
+                    trans_active.remove(id);
+                    time_to_live.remove(id);
+                }
             }
             timer.stop(id);
             throw e;
@@ -673,9 +722,11 @@ public class RMIMiddleware implements IResourceManager{
             if(!trans_active.containsKey(id)){
                 throw new InvalidTransactionException();
             }
-            time_to_live.replace(id,time);
-            
-            addRMToActiveTransaction(id, true, false, false);
+            synchronized (lock) {
+                time_to_live.replace(id, time);
+
+                addRMToActiveTransaction(id, true, false, false);
+            }
 
             timer.stop(id);
 
@@ -692,8 +743,10 @@ public class RMIMiddleware implements IResourceManager{
                     RM.abort(id);
                     timer.start(id);
                 }
-                trans_active.remove(id);
-                time_to_live.remove(id);
+                synchronized (lock) {
+                    trans_active.remove(id);
+                    time_to_live.remove(id);
+                }
             }
             timer.stop(id);
             throw e;
@@ -714,10 +767,11 @@ public class RMIMiddleware implements IResourceManager{
             if(!trans_active.containsKey(id)){
                 throw new InvalidTransactionException();
             }
+            synchronized (lock) {
+                time_to_live.replace(id, time);
 
-            time_to_live.replace(id,time);
-
-            addRMToActiveTransaction(id, false, true, false);
+                addRMToActiveTransaction(id, false, true, false);
+            }
 
             timer.stop(id);
 
@@ -734,8 +788,10 @@ public class RMIMiddleware implements IResourceManager{
                     RM.abort(id);
                     timer.start(id);
                 }
-                trans_active.remove(id);
-                time_to_live.remove(id);
+                synchronized (lock) {
+                    trans_active.remove(id);
+                    time_to_live.remove(id);
+                }
             }
             timer.stop(id);
             throw e;
@@ -755,9 +811,11 @@ public class RMIMiddleware implements IResourceManager{
             if(!trans_active.containsKey(id)){
                 throw new InvalidTransactionException();
             }
-            time_to_live.replace(id,time);
+            synchronized (lock) {
+                time_to_live.replace(id, time);
 
-            addRMToActiveTransaction(id, false, false, true);
+                addRMToActiveTransaction(id, false, false, true);
+            }
 
             timer.stop(id);
 
@@ -774,8 +832,10 @@ public class RMIMiddleware implements IResourceManager{
                     RM.abort(id);
                     timer.start(id);
                 }
-                trans_active.remove(id);
-                time_to_live.remove(id);
+                synchronized (lock) {
+                    trans_active.remove(id);
+                    time_to_live.remove(id);
+                }
             }
             timer.stop(id);
             throw e;
@@ -795,9 +855,11 @@ public class RMIMiddleware implements IResourceManager{
             if(!trans_active.containsKey(id)){
                 throw new InvalidTransactionException();
             }
-            time_to_live.replace(id,time);
+            synchronized (lock) {
+                time_to_live.replace(id, time);
 
-            addRMToActiveTransaction(id, true, true, true);
+                addRMToActiveTransaction(id, true, true, true);
+            }
 
             timer.stop(id);
 
@@ -818,8 +880,10 @@ public class RMIMiddleware implements IResourceManager{
                     RM.abort(id);
                     timer.start(id);
                 }
-                trans_active.remove(id);
-                time_to_live.remove(id);
+                synchronized (lock) {
+                    trans_active.remove(id);
+                    time_to_live.remove(id);
+                }
             }
             timer.stop(id);
             throw e;
@@ -839,10 +903,12 @@ public class RMIMiddleware implements IResourceManager{
             if(!trans_active.containsKey(id)){
                 throw new InvalidTransactionException();
             }
-            time_to_live.replace(id,time);
+            synchronized (lock) {
+                time_to_live.replace(id, time);
 
-            
-            addRMToActiveTransaction(id, true, true, true);
+
+                addRMToActiveTransaction(id, true, true, true);
+            }
 
             timer.stop(id);
 
@@ -863,8 +929,10 @@ public class RMIMiddleware implements IResourceManager{
                     RM.abort(id);
                     timer.start(id);
                 }
-                trans_active.remove(id);
-                time_to_live.remove(id);
+                synchronized (lock) {
+                    trans_active.remove(id);
+                    time_to_live.remove(id);
+                }
             }
             timer.stop(id);
             throw e;
@@ -884,9 +952,11 @@ public class RMIMiddleware implements IResourceManager{
             if(!trans_active.containsKey(id)){
                 throw new InvalidTransactionException();
             }
-            time_to_live.replace(id,time);
+            synchronized (lock) {
+                time_to_live.replace(id, time);
 
-            addRMToActiveTransaction(id, true, true, true);
+                addRMToActiveTransaction(id, true, true, true);
+            }
             
             timer.stop(id);
 
@@ -907,8 +977,10 @@ public class RMIMiddleware implements IResourceManager{
                     RM.abort(id);
                     timer.start(id);
                 }
-                trans_active.remove(id);
-                time_to_live.remove(id);
+                synchronized (lock) {
+                    trans_active.remove(id);
+                    time_to_live.remove(id);
+                }
             }
             timer.stop(id);
             throw e;
@@ -928,9 +1000,11 @@ public class RMIMiddleware implements IResourceManager{
             if (!trans_active.containsKey(id)) {
                 throw new InvalidTransactionException();
             }
-            time_to_live.replace(id, time);
+            synchronized (lock) {
+                time_to_live.replace(id, time);
 
-            addRMToActiveTransaction(id, true, true, true);
+                addRMToActiveTransaction(id, true, true, true);
+            }
 
             timer.stop(id);
 
@@ -976,8 +1050,10 @@ public class RMIMiddleware implements IResourceManager{
                     RM.abort(id);
                     timer.start(id);
                 }
-                trans_active.remove(id);
-                time_to_live.remove(id);
+                synchronized (lock) {
+                    trans_active.remove(id);
+                    time_to_live.remove(id);
+                }
             }
             timer.stop(id);
             throw e;
@@ -993,43 +1069,42 @@ public class RMIMiddleware implements IResourceManager{
     }
 
     private void checkTTL(long currentTime, int xid) throws RemoteException, InvalidTransactionException, TransactionAbortedException{
-        
-        boolean throwException = false;
+        synchronized(lock) {
+            boolean throwException = false;
 
-        if (transactionsToNotify.contains(xid)){
-            transactionsToNotify.remove(xid);
-            throwException = true;
-        }
-            
+            if (transactionsToNotify.contains(xid)) {
+                transactionsToNotify.remove(xid);
+                throwException = true;
+            }
 
-        for (var entry : time_to_live.entrySet())
-        {
-            long prevTime = entry.getValue();
 
-            if (currentTime - prevTime > TTL)
-            {
-                int id = entry.getKey();
+            for (var entry : time_to_live.entrySet()) {
+                long prevTime = entry.getValue();
 
-                if (id == xid)
-                    throwException = true;
-                else
-                    transactionsToNotify.add(id);
+                if (currentTime - prevTime > TTL) {
+                    int id = entry.getKey();
 
-                List<IResourceManager> RM_used = trans_active.get(id);
+                    if (id == xid)
+                        throwException = true;
+                    else
+                        transactionsToNotify.add(id);
 
-                if (RM_used != null){
+                    List<IResourceManager> RM_used = trans_active.get(id);
 
-                    for(IResourceManager RM:RM_used){
-                        RM.abort(id);
+                    if (RM_used != null) {
+
+                        for (IResourceManager RM : RM_used) {
+                            RM.abort(id);
+                        }
+                        trans_active.remove(id);
                     }
-                    trans_active.remove(id);
                 }
             }
-        }
-        time_to_live.entrySet().removeIf(entry -> currentTime - entry.getValue() > TTL);
+            time_to_live.entrySet().removeIf(entry -> currentTime - entry.getValue() > TTL);
 
-        if (throwException)
-            throw new TransactionAbortedException();
+            if (throwException)
+                throw new TransactionAbortedException();
+        }
     }
 
     private void addRMToActiveTransaction(int id, boolean addFlightRM, boolean addCarsRM, boolean addRoomsRM)
@@ -1053,66 +1128,71 @@ public class RMIMiddleware implements IResourceManager{
 
     @Override
     public int start() throws RemoteException {
-        int trans_ID = transactionID.getAndIncrement();
-        List<IResourceManager> RM_used = new ArrayList<>();
-        trans_active.put(trans_ID,RM_used);
-        long time = System.currentTimeMillis();
-        time_to_live.put(trans_ID,time);
-        return trans_ID;
+        synchronized (lock) {
+            int trans_ID = transactionID.getAndIncrement();
+            List<IResourceManager> RM_used = new ArrayList<>();
+            trans_active.put(trans_ID, RM_used);
+            long time = System.currentTimeMillis();
+            time_to_live.put(trans_ID, time);
+            return trans_ID;
+        }
     }
 
     @Override
     public boolean commit(int transactionId) throws RemoteException, InvalidTransactionException, TransactionAbortedException {
+        synchronized (lock) {
 
-        try{
-            long time = System.currentTimeMillis();
-            checkTTL(time, transactionId);
-        }
-        catch(TransactionAbortedException e){
+            try {
+                long time = System.currentTimeMillis();
+                checkTTL(time, transactionId);
+            } catch (TransactionAbortedException e) {
+                List<IResourceManager> RM_used = trans_active.get(transactionId);
+
+                if (RM_used != null) {
+
+                    for (IResourceManager RM : RM_used) {
+                        RM.abort(transactionId);
+                    }
+                    trans_active.remove(transactionId);
+                    time_to_live.remove(transactionId);
+                }
+                throw e;
+            }
+
             List<IResourceManager> RM_used = trans_active.get(transactionId);
 
-            if (RM_used != null){
+            if (RM_used == null)
+                throw new InvalidTransactionException();
 
-                for(IResourceManager RM:RM_used){
-                    RM.abort(transactionId);
-                }
-                trans_active.remove(transactionId);
-                time_to_live.remove(transactionId);
+            for (IResourceManager RM : RM_used) {
+                RM.commit(transactionId);
             }
-            throw e;
+
+            trans_active.remove(transactionId);
+            time_to_live.remove(transactionId);
+
+            timer.commit(transactionId);
+
+            return true;
         }
-
-        List<IResourceManager> RM_used = trans_active.get(transactionId);
-
-        if (RM_used == null)
-            throw new InvalidTransactionException();
-
-        for(IResourceManager RM:RM_used){
-            RM.commit(transactionId);
-        }
-
-        trans_active.remove(transactionId);
-        time_to_live.remove(transactionId);
-
-        timer.commit(transactionId);
-
-        return true;
     }
 
     @Override
     public void abort(int transactionId) throws RemoteException, InvalidTransactionException {
-        
-        List<IResourceManager> RM_used = trans_active.get(transactionId);
+        synchronized (lock) {
 
-        if (RM_used == null)
-            throw new InvalidTransactionException();
+            List<IResourceManager> RM_used = trans_active.get(transactionId);
 
-        for(IResourceManager RM:RM_used){
-            RM.abort(transactionId);
+            if (RM_used == null)
+                throw new InvalidTransactionException();
+
+            for (IResourceManager RM : RM_used) {
+                RM.abort(transactionId);
+            }
+
+            trans_active.remove(transactionId);
+            time_to_live.remove(transactionId);
         }
-
-        trans_active.remove(transactionId);
-        time_to_live.remove(transactionId);
     }
 
     @Override

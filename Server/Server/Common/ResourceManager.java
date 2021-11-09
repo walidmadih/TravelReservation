@@ -22,7 +22,7 @@ public class ResourceManager implements IResourceManager
 	private TransactionTimer timer = new TransactionTimer();
 	private LockManager lManager = new LockManager();
 	private HashMap<Integer, Vector<Snapshot>> abortInfo = new HashMap<Integer, Vector<Snapshot>>();
-
+	abortInfo = Collections.synchronizedMap(abortInfo);
 	public ResourceManager(String p_name)
 	{
 		m_name = p_name;
@@ -697,6 +697,7 @@ public class ResourceManager implements IResourceManager
 
 	private void takeSnapshot(int xid, String key)
 	{
+		synchronized ()
 		RMItem item = readData(xid, key);
 
 		if (abortInfo.containsKey(xid))
