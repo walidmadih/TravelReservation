@@ -6,6 +6,8 @@ import Server.Interface.IResourceManager.TransactionAbortedException;
 
 import java.util.*;
 
+import javax.xml.crypto.Data;
+
 import Client.DataGatherer.TestClient;
 
 import java.io.*;
@@ -92,9 +94,26 @@ public abstract class Client
 		}
 	}
 
+	public boolean commitTransaction(int transactionId) throws RemoteException, InvalidTransactionException, TransactionAbortedException{
+		timer.commit(transactionId);
+		transactionLayerTimer.stop(transactionId);
+		transactionLayerTimer.commit(transactionId);
+		return m_resourceManager.commit(transactionId);
+	}
+
+	public int startTransaction() throws RemoteException{
+		int xid = m_resourceManager.start();
+		transactionLayerTimer.start(xid);
+		return xid;
+	}
+
+	public void abortTransaction(int xid) throws RemoteException, InvalidTransactionException, TransactionAbortedException{
+		m_resourceManager.abort(xid);
+	}
+
 	public void execute(Command cmd, Vector<String> arguments) throws RemoteException, NumberFormatException, InvalidTransactionException, TransactionAbortedException, TransactionAlreadyWaitingException
 	{
-		int xid = arguments.size() > 1 ? ToInt(arguments.elementAt(1)) : -1;
+		int xid = arguments.size() > 1 ? toInt(arguments.elementAt(1)) : -1;
 		switch (cmd)
 		{
 			case Help:
@@ -166,7 +185,7 @@ public abstract class Client
 				int flightSeats = toInt(arguments.elementAt(3));
 				int flightPrice = toInt(arguments.elementAt(4));
 
-				timer.stop(id);
+				timer.stop(xid);
 				if (m_resourceManager.addFlight(xid, flightNum, flightSeats, flightPrice)) {
 					System.out.println("Flight added");
 				} else {
@@ -188,7 +207,7 @@ public abstract class Client
 				int numCars = toInt(arguments.elementAt(3));
 				int price = toInt(arguments.elementAt(4));
 
-				timer.stop(id);
+				timer.stop(xid);
 				if (m_resourceManager.addCars(xid, location, numCars, price)) {
 					System.out.println("Cars added");
 				} else {
@@ -542,7 +561,7 @@ public abstract class Client
 					double average = (count == 0 || time == 0) ? 0 : (double) time / (double) count;
 					output += String.format("%15s\t\t\t Transactions: %8d \t\t Total Time: %8d \t\t Average Response Time: %8.3f ms\n", layer.name(), count, time, average);
 				}
-				output += String.format("%15s\t\t\t%d Transactions/second\n", "THROUGHPUT", totalCount.get(LayerTypes.TRANSACTION));
+				output += String.format("%15s\t\t\t%d Transactions/second\n", "THROUGHPUT", 1000 * totalCount.get(LayerTypes.TRANSACTION) / totalTime.get(LayerTypes.TRANSACTION));
 				out.println(output);
 				break;
 			}

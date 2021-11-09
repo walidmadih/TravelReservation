@@ -1158,7 +1158,7 @@ public class RMIMiddleware implements IResourceManager{
         {
             if (manager instanceof RMIMiddleware){
                 try{
-                    Thread.sleep(500);
+                    Thread.sleep(1000);
                 }
                 catch (InterruptedException e) {}
                 System.exit(0);

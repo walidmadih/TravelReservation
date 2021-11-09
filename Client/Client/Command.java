@@ -36,8 +36,6 @@ public enum Command {
 
 	QueryTransactionResponseTime("Get average response time of transactions since last query.", "<xid>, <Vector<DataPoint>>"),
 
-	Commit("Commit the transaction", "<xid>"),
-
 	Quit("Exit the client application", "");
 
 	String m_description;

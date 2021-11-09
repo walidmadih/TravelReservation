@@ -13,6 +13,7 @@ public class Operation{
 
     private Command aCommand;
     private Vector<String> aArguments;
+    private boolean xidSet = false;
 
     public Operation(Command pCommand, Vector<String> pArguments){
         aCommand = pCommand;
@@ -24,7 +25,11 @@ public class Operation{
     }
 
     public void setXid(int xid){
-        aArguments.insertElementAt(String.valueOf(xid), 1);
+        if (xidSet)
+            aArguments.set(1, String.valueOf(xid));
+        else
+            aArguments.insertElementAt(String.valueOf(xid), 1);
+        xidSet = true;
     }
 
     public void setTimer(TransactionTimer timer){

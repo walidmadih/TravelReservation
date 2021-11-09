@@ -21,7 +21,7 @@ public class Transaction{
 
     private long startTime;
     private long endTime;
-    private int transactionTime = 0;
+    private long transactionTime = 0;
 
     private int xid;
 
@@ -49,29 +49,33 @@ public class Transaction{
         return aClient.commitTransaction(xid);
     }
 
-    public void abort(){
-        //TODO Implement this
+    public void abort() throws RemoteException, InvalidTransactionException, TransactionAbortedException{
         aClient.transactionLayerTimer.cleanUp(xid);
+        aClient.abortTransaction(xid);
     }
 
-    public int start() throws RemoteException, InvalidTransactionException, TransactionAbortedException, TransactionAlreadyWaitingException{
-        xid = aClient.startTransaction();
-        System.out.println(String.format("Retrieved XID: %d", xid));
-        startTime = System.currentTimeMillis();
-        endTime = startTime;
-        for(Operation operation: aOperations){
-            operation.setXid(xid);
+    public boolean start() throws RemoteException, InvalidTransactionException, TransactionAbortedException, TransactionAlreadyWaitingException{
+        try{
+            xid = aClient.startTransaction();
+            System.out.println(String.format("Retrieved XID: %d", xid));
+            startTime = System.currentTimeMillis();
+            endTime = startTime;
+            for(Operation operation: aOperations){
+                operation.setXid(xid);
+            }
+            executeAllOperations();
+            endTime = System.currentTimeMillis();
+            commit();
+            return true;
         }
-        executeAllOperations();
-        endTime = System.currentTimeMillis();
-        if(!commit()){
+        catch (Exception e) {
             abort();
+            return false;
         }
-        return xid;
     }
 
-    public int getTransactionTime(){
-        transactionTime = (int) (endTime - startTime);
+    public long getTransactionTime(){
+        transactionTime = (endTime - startTime);
         return transactionTime;
     }
 

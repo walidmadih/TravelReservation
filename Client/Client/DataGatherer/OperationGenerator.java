@@ -93,4 +93,75 @@ public class OperationGenerator{
         return ll;
     }
 
+    public static LinkedList<Operation> generateflightOnlyTransaction(int flightNum, int numSeats, int price)
+    {
+        LinkedList<Operation> ops = new LinkedList<>();
+        Vector<Command> cmds = new Vector<>();
+
+        cmds.add(Command.AddFlight);
+        cmds.add(Command.QueryFlight);
+        cmds.add(Command.QueryFlightPrice);
+        cmds.add(Command.DeleteFlight);
+        
+        for (int i = 0; i < 4; i++)
+        {
+            Command cmd = cmds.get(i);
+            for (int j = 0; j < 3; j++)
+            {
+                Vector<String> args = new Vector<>();
+                args.add(cmd.name());
+                args.add(String.valueOf(flightNum + j));
+
+                if (cmd == Command.AddFlight)
+                {
+                    args.add(String.valueOf(numSeats));
+                    args.add(String.valueOf(price));
+                }
+
+                ops.add(new Operation(cmd, args));
+            }
+        }
+        return ops;
+    }
+
+    public static LinkedList<Operation> generateAllRMTransaction(int flightNum, String location, int numItem, int price)
+    {
+        LinkedList<Operation> ops = new LinkedList<>();
+        Vector<Command> cmds = new Vector<>();
+
+        cmds.add(Command.AddFlight);
+        cmds.add(Command.QueryFlight);
+        cmds.add(Command.QueryFlightPrice);
+        cmds.add(Command.DeleteFlight);
+        cmds.add(Command.AddCars);
+        cmds.add(Command.QueryCars);
+        cmds.add(Command.QueryCarsPrice);
+        cmds.add(Command.DeleteCars);
+        cmds.add(Command.AddRooms);
+        cmds.add(Command.QueryRooms);
+        cmds.add(Command.QueryRoomsPrice);
+        cmds.add(Command.DeleteRooms);
+
+        for (int i = 0; i < 12; i++)
+        {
+            Command cmd = cmds.get(i);
+            Vector<String> args = new Vector<>();
+            args.add(cmd.name());
+
+            if (i < 4)
+                args.add(String.valueOf(flightNum));
+            else
+                args.add(location);
+
+            if (cmd == Command.AddFlight || cmd == Command.AddCars || cmd == Command.AddRooms)
+            {
+                args.add(String.valueOf(numItem));
+                args.add(String.valueOf(price));
+            }
+
+            ops.add(new Operation(cmd, args));
+        }
+        return ops;
+    }
+
 }

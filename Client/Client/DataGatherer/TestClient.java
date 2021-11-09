@@ -2,10 +2,15 @@ package Client.DataGatherer;
 
 import java.io.OutputStream;
 import java.io.PrintStream;
+import java.io.PrintWriter;
+import java.rmi.RemoteException;
 
 import javax.sound.sampled.SourceDataLine;
 
 import Client.RMIClient;
+import Server.Interface.DataPoint;
+import Server.Interface.LayerTypes;
+import java.util.*;
 
 public class TestClient extends RMIClient implements Runnable
 {
@@ -19,7 +24,7 @@ public class TestClient extends RMIClient implements Runnable
     private int aTransactionIntervalVariation = 200;
 
     private Transaction transaction;
-    private boolean randomTransactions = true;
+    private boolean randomTransactions = false;
 
     public TestClient(String pHost, int pPort, String pServerName, String pGroupName){
         this(pHost, pPort, pServerName, pGroupName, 500);
@@ -34,6 +39,10 @@ public class TestClient extends RMIClient implements Runnable
         aGroupName = pGroupName;
         aTransactionInterval = pTransactionInterval;
         aTransactionIntervalVariation = pTransactionIntervalVariation;
+    }
+
+    public void setTransaction(Transaction transaction){
+        this.transaction = transaction;
     }
 
     @Override
@@ -52,7 +61,7 @@ public class TestClient extends RMIClient implements Runnable
                 aHost, aPort, aServerName, aGroupName, aTransactionInterval, aTransactionIntervalVariation));
 
             while(true){
-                // Deciding time before next transaction
+                //Deciding time before next transaction
                 int upper = aTransactionInterval + aTransactionIntervalVariation;
                 int lower = aTransactionInterval - aTransactionIntervalVariation;
                 int targetTime = (int) (Math.random() * (upper - lower)) + lower;;

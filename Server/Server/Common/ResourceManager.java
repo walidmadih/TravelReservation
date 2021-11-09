@@ -684,15 +684,15 @@ public class ResourceManager implements IResourceManager
 			if(!lManager.Lock(id, Customer.getKey(customerID), lockType))
 			{
 				System.out.println("The input arguments for the lock is wrong, lock can't be granted. ");
-				timer.stop(xid);
+				timer.stop(id);
 				throw new TransactionAbortedException();
 			}
 		}
 		catch (DeadlockException deadlock){
-			timer.stop(xid);
+			timer.stop(id);
 			throw new TransactionAbortedException();
 		}
-		timer.stop(xid);
+		timer.stop(id);
 	}
 
 	private void takeSnapshot(int xid, String key)
