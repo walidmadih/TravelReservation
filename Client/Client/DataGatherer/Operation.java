@@ -32,10 +32,6 @@ public class Operation{
         xidSet = true;
     }
 
-    public void setTimer(TransactionTimer timer){
-        
-    }
-
     public Operation copy(){
         return new Operation(this.aCommand, this.aArguments);
     }

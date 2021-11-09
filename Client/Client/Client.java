@@ -9,6 +9,7 @@ import java.util.*;
 import javax.xml.crypto.Data;
 
 import Client.DataGatherer.TestClient;
+import Client.DataGatherer.Transaction;
 
 import java.io.*;
 import java.rmi.RemoteException;
@@ -94,26 +95,12 @@ public abstract class Client
 		}
 	}
 
-	public boolean commitTransaction(int transactionId) throws RemoteException, InvalidTransactionException, TransactionAbortedException{
-		timer.commit(transactionId);
-		transactionLayerTimer.stop(transactionId);
-		transactionLayerTimer.commit(transactionId);
-		return m_resourceManager.commit(transactionId);
+	public void execute(Command cmd, Vector<String> arguments) throws RemoteException, NumberFormatException, InvalidTransactionException, TransactionAbortedException, TransactionAlreadyWaitingException{
+		execute(cmd, arguments, Transaction.getDummyTransaction());
 	}
-
-	public int startTransaction() throws RemoteException{
-		int xid = m_resourceManager.start();
-		transactionLayerTimer.start(xid);
-		return xid;
-	}
-
-	public void abortTransaction(int xid) throws RemoteException, InvalidTransactionException, TransactionAbortedException{
-		m_resourceManager.abort(xid);
-	}
-
-	public void execute(Command cmd, Vector<String> arguments) throws RemoteException, NumberFormatException, InvalidTransactionException, TransactionAbortedException, TransactionAlreadyWaitingException
+	public void execute(Command cmd, Vector<String> arguments, Transaction transaction) throws RemoteException, NumberFormatException, InvalidTransactionException, TransactionAbortedException, TransactionAlreadyWaitingException
 	{
-		int xid = arguments.size() > 1 ? toInt(arguments.elementAt(1)) : -1;
+		int xid = transaction.getXid();
 		switch (cmd)
 		{
 			case Help:
@@ -131,9 +118,9 @@ public abstract class Client
 			case Start:
 			{
 				checkArgumentsCount(1,arguments.size());
-				int trans_id = m_resourceManager.start();
-				transactionLayerTimer.start(trans_id);
-				System.out.println("Your transaction id is " + trans_id);
+				transaction.setXid(m_resourceManager.start());
+				transactionLayerTimer.start(xid);
+				System.out.println("Your transaction id is " + xid);
 				break;
 			}
 			case Commit:
@@ -143,8 +130,9 @@ public abstract class Client
 				timer.commit(xid);
 				transactionLayerTimer.stop(xid);
 				transactionLayerTimer.commit(xid);
-
-				if (m_resourceManager.commit(xid)){
+				boolean successfullyCommitted = m_resourceManager.commit(xid);
+				transaction.setCommitted(successfullyCommitted);
+				if (successfullyCommitted){
 					System.out.println("Transaction commited successfully.");
 				}
 				else {
@@ -155,7 +143,9 @@ public abstract class Client
 			case Abort:
 			{
 				checkArgumentsCount(2, arguments.size());
+				transaction.setAborted(true);
 				m_resourceManager.abort(xid);
+				transactionLayerTimer.cleanUp(xid);
 				System.out.println("Transaction aborted.");
 				break;
 			}

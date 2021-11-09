@@ -10,6 +10,9 @@ import javax.sound.sampled.SourceDataLine;
 import Client.RMIClient;
 import Server.Interface.DataPoint;
 import Server.Interface.LayerTypes;
+import Server.Interface.IResourceManager.InvalidTransactionException;
+import Server.Interface.IResourceManager.TransactionAbortedException;
+
 import java.util.*;
 
 public class TestClient extends RMIClient implements Runnable
@@ -70,7 +73,15 @@ public class TestClient extends RMIClient implements Runnable
                 {
                     transaction = new Transaction(OperationGenerator.generateRandomOperations(), this);
                 }
-                transaction.start();
+                while(!transaction.getCommitted()){
+                    try{
+                        transaction.start();
+                    }catch(InvalidTransactionException e){
+                        transaction.abort();
+                    }catch(TransactionAbortedException e){
+                        transaction.abort();
+                    }
+                }
 
                 System.out.println(String.format("Transaction XID: %d\t\tOperation Count: %d\t\tTransaction Time: %d\t\tCOMPLETED", transaction.getXid(), transaction.getTotalCount(), transaction.getTransactionTime()));
                 long sleepTime = Math.max(targetTime - (transaction.getTransactionTime()), 0);

@@ -678,9 +678,9 @@ public class ResourceManager implements IResourceManager
 
 	public void requestCustomerLock(int id, int customerID, LockType lockType) throws RemoteException, TransactionAbortedException, TransactionAlreadyWaitingException
 	{
+		timer.start(id);
 		try
 		{
-			timer.start(id);
 			if(!lManager.Lock(id, Customer.getKey(customerID), lockType))
 			{
 				System.out.println("The input arguments for the lock is wrong, lock can't be granted. ");

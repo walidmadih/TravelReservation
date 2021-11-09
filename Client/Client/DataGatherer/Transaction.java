@@ -24,7 +24,14 @@ public class Transaction{
     private long transactionTime = 0;
 
     private int xid;
+    private boolean committed;
+    private boolean aborted;
 
+    public static Transaction getDummyTransaction(){
+        Transaction dummy = new Transaction(new LinkedList<Operation>(), null);
+        dummy.setXid(-1);
+        return dummy;
+    }
     public Transaction(List<Operation> pOperations, Client pClient){
         aOperations = new LinkedList<>();
         for(Operation op : pOperations){
@@ -38,39 +45,79 @@ public class Transaction{
         return aSize;
     }
 
+    public void setXid(int id){
+        xid = id;
+    }
+    public void setCommitted(boolean bool){
+        committed = bool;
+    }
+
+    public void setAborted(boolean bool){
+        aborted = bool;
+    }
+
+    public boolean getCommitted(){
+        return committed;
+    }
+
     private void executeAllOperations() throws RemoteException, InvalidTransactionException, TransactionAbortedException, TransactionAlreadyWaitingException{
         for(Operation operation : aOperations){
+            if(aborted){
+                break;
+            }
             System.out.println(String.format("Executing:  %s ", operation.toString()));
             operation.executeOnClient(aClient);
         }
     }
 
-    private boolean commit() throws RemoteException, InvalidTransactionException, TransactionAbortedException{
-        return aClient.commitTransaction(xid);
+
+    private void startOperation() throws RemoteException, InvalidTransactionException, TransactionAbortedException, TransactionAlreadyWaitingException{
+        Command cmd = Command.Start;
+        Vector<String> arguments = new Vector<String>();
+        arguments.add(cmd.name());
+
+        Operation startOperation = new Operation(cmd, arguments);
+
+        startOperation.executeOnClient(aClient);
     }
 
-    public void abort() throws RemoteException, InvalidTransactionException, TransactionAbortedException{
-        aClient.transactionLayerTimer.cleanUp(xid);
-        aClient.abortTransaction(xid);
+    private void commitOperation() throws RemoteException, InvalidTransactionException, TransactionAbortedException, TransactionAlreadyWaitingException{
+        Command cmd = Command.Commit;
+        Vector<String> arguments = new Vector<String>();
+        arguments.add(cmd.name());
+
+        Operation commitOperation = new Operation(cmd, arguments);
+
+        commitOperation.executeOnClient(aClient);
     }
 
-    public boolean start() throws RemoteException, InvalidTransactionException, TransactionAbortedException, TransactionAlreadyWaitingException{
-        try{
-            xid = aClient.startTransaction();
-            System.out.println(String.format("Retrieved XID: %d", xid));
-            startTime = System.currentTimeMillis();
-            endTime = startTime;
-            for(Operation operation: aOperations){
-                operation.setXid(xid);
-            }
-            executeAllOperations();
-            endTime = System.currentTimeMillis();
-            commit();
-            return true;
+    private void abortOperation() throws RemoteException, InvalidTransactionException, TransactionAbortedException, TransactionAlreadyWaitingException{
+        Command cmd = Command.Abort;
+        Vector<String> arguments = new Vector<String>();
+        arguments.add(cmd.name());
+
+        Operation abortOperation = new Operation(cmd, arguments);
+
+        abortOperation.executeOnClient(aClient);
+    }
+
+    public void abort() throws RemoteException, InvalidTransactionException, TransactionAbortedException, TransactionAlreadyWaitingException{
+        abortOperation();
+    }
+
+    public void start() throws RemoteException, InvalidTransactionException, TransactionAbortedException, TransactionAlreadyWaitingException{
+        startOperation();
+        System.out.println(String.format("Retrieved XID: %d", xid));
+        startTime = System.currentTimeMillis();
+        endTime = startTime;
+        for(Operation operation: aOperations){
+            operation.setXid(xid);
         }
-        catch (Exception e) {
-            abort();
-            return false;
+        executeAllOperations();
+        endTime = System.currentTimeMillis();
+        commitOperation();
+        if(!committed){
+            abortOperation();
         }
     }
 
