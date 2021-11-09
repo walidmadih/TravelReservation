@@ -838,8 +838,11 @@ public class RMIMiddleware implements IResourceManager{
         
         boolean throwException = false;
 
-        if (transactionsToNotify.contains(xid))
+        if (transactionsToNotify.contains(xid)){
+            transactionsToNotify.remove(xid);
             throwException = true;
+        }
+            
 
         for (var entry : time_to_live.entrySet())
         {
@@ -901,7 +904,26 @@ public class RMIMiddleware implements IResourceManager{
     }
 
     @Override
-    public boolean commit(int transactionId) throws RemoteException, InvalidTransactionException {
+    public boolean commit(int transactionId) throws RemoteException, InvalidTransactionException, TransactionAbortedException {
+
+        try{
+            long time = System.currentTimeMillis();
+            checkTTL(time, transactionId);
+        }
+        catch(TransactionAbortedException e){
+            List<IResourceManager> RM_used = trans_active.get(transactionId);
+
+            if (RM_used != null){
+
+                for(IResourceManager RM:RM_used){
+                    RM.abort(transactionId);
+                }
+                trans_active.remove(transactionId);
+                time_to_live.remove(transactionId);
+            }
+            throw e;
+        }
+
         List<IResourceManager> RM_used = trans_active.get(transactionId);
 
         if (RM_used == null)
