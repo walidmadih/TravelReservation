@@ -7,6 +7,8 @@ import javax.sound.sampled.SourceDataLine;
 
 import Client.Client;
 import Client.RMIClient;
+import Server.Interface.IResourceManager.InvalidTransactionException;
+import Server.Interface.IResourceManager.TransactionAbortedException;
 
 public class DataClient extends RMIClient implements Runnable
 {
@@ -14,6 +16,8 @@ public class DataClient extends RMIClient implements Runnable
     private int aPort;
     private String aGroupName;
     private String aServerName;
+
+    private int evaluationInterval;
 
     public DataClient(String pHost, int pPort, String pServerName, String pGroupName, ArrayList<TestClient> pClients){
         aHost = pHost;
@@ -38,8 +42,17 @@ public class DataClient extends RMIClient implements Runnable
 
             while(true){
                 // Deciding time before next transaction
+                
                 Transaction transaction = new Transaction(OperationGenerator.generateTimeDataTransaction(), this);
-                transaction.start();
+                while(!transaction.isCommitted()){
+                    try{
+                        transaction.start();
+                    }catch(InvalidTransactionException e){
+                        transaction.abort();
+                    }catch(TransactionAbortedException e){
+                        transaction.abort();
+                    }
+                }
                 System.out.println(String.format("Transaction XID: %d\t\tOperation Count: %d\t\tTransaction Time: %d\t\tCOMPLETED", transaction.getXid(), transaction.getTotalCount(), transaction.getTransactionTime()));
                 
                 try{
@@ -47,6 +60,7 @@ public class DataClient extends RMIClient implements Runnable
                 } catch(InterruptedException e){
 
                 }
+
             }
 		} 
 		catch (Exception e) {    

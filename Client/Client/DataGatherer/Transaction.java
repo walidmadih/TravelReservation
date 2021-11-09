@@ -56,7 +56,7 @@ public class Transaction{
         aborted = bool;
     }
 
-    public boolean getCommitted(){
+    public boolean isCommitted(){
         return committed;
     }
 
@@ -66,47 +66,12 @@ public class Transaction{
                 break;
             }
             System.out.println(String.format("Executing:  %s ", operation.toString()));
-            operation.executeOnClient(aClient);
+            operation.executeOnClient(aClient, this);
         }
     }
 
-
-    private void startOperation() throws RemoteException, InvalidTransactionException, TransactionAbortedException, TransactionAlreadyWaitingException{
-        Command cmd = Command.Start;
-        Vector<String> arguments = new Vector<String>();
-        arguments.add(cmd.name());
-
-        Operation startOperation = new Operation(cmd, arguments);
-
-        startOperation.executeOnClient(aClient);
-    }
-
-    private void commitOperation() throws RemoteException, InvalidTransactionException, TransactionAbortedException, TransactionAlreadyWaitingException{
-        Command cmd = Command.Commit;
-        Vector<String> arguments = new Vector<String>();
-        arguments.add(cmd.name());
-
-        Operation commitOperation = new Operation(cmd, arguments);
-
-        commitOperation.executeOnClient(aClient);
-    }
-
-    private void abortOperation() throws RemoteException, InvalidTransactionException, TransactionAbortedException, TransactionAlreadyWaitingException{
-        Command cmd = Command.Abort;
-        Vector<String> arguments = new Vector<String>();
-        arguments.add(cmd.name());
-
-        Operation abortOperation = new Operation(cmd, arguments);
-
-        abortOperation.executeOnClient(aClient);
-    }
-
-    public void abort() throws RemoteException, InvalidTransactionException, TransactionAbortedException, TransactionAlreadyWaitingException{
-        abortOperation();
-    }
-
     public void start() throws RemoteException, InvalidTransactionException, TransactionAbortedException, TransactionAlreadyWaitingException{
-        startOperation();
+        OperationGenerator.generateStartOperation().executeOnClient(aClient, this);
         System.out.println(String.format("Retrieved XID: %d", xid));
         startTime = System.currentTimeMillis();
         endTime = startTime;
@@ -115,11 +80,16 @@ public class Transaction{
         }
         executeAllOperations();
         endTime = System.currentTimeMillis();
-        commitOperation();
-        if(!committed){
-            abortOperation();
-        }
     }
+
+    public void commit() throws RemoteException, InvalidTransactionException, TransactionAbortedException, TransactionAlreadyWaitingException{
+        OperationGenerator.generateCommitOperation().executeOnClient(aClient, this);
+    }
+
+    public void abort() throws RemoteException, InvalidTransactionException, TransactionAbortedException, TransactionAlreadyWaitingException{
+        OperationGenerator.generateAbortOperation().executeOnClient(aClient, this);
+    }
+
 
     public long getTransactionTime(){
         transactionTime = (endTime - startTime);

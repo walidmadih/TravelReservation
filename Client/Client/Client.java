@@ -100,7 +100,8 @@ public abstract class Client
 	}
 	public void execute(Command cmd, Vector<String> arguments, Transaction transaction) throws RemoteException, NumberFormatException, InvalidTransactionException, TransactionAbortedException, TransactionAlreadyWaitingException
 	{
-		int xid = transaction.getXid();
+		int xid =  (arguments.size() > 1) ?  Integer.valueOf(arguments.get(1)) : -1;
+		System.out.println(String.format("%s\t%d", cmd.name(), xid));
 		switch (cmd)
 		{
 			case Help:
@@ -118,7 +119,8 @@ public abstract class Client
 			case Start:
 			{
 				checkArgumentsCount(1,arguments.size());
-				transaction.setXid(m_resourceManager.start());
+				xid = m_resourceManager.start();
+				transaction.setXid(xid);
 				transactionLayerTimer.start(xid);
 				System.out.println("Your transaction id is " + xid);
 				break;

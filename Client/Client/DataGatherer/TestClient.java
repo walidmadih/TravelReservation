@@ -73,7 +73,7 @@ public class TestClient extends RMIClient implements Runnable
                 {
                     transaction = new Transaction(OperationGenerator.generateRandomOperations(), this);
                 }
-                while(!transaction.getCommitted()){
+                while(!transaction.isCommitted()){
                     try{
                         transaction.start();
                     }catch(InvalidTransactionException e){

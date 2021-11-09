@@ -20,8 +20,8 @@ public class Operation{
         aArguments = new Vector<String>(pArguments);
     }
 
-    public void executeOnClient(Client pClient) throws RemoteException,TransactionAbortedException,InvalidTransactionException,TransactionAlreadyWaitingException{
-        pClient.execute(aCommand, aArguments);
+    public void executeOnClient(Client pClient, Transaction callingTransaction) throws RemoteException,TransactionAbortedException,InvalidTransactionException,TransactionAlreadyWaitingException{
+        pClient.execute(aCommand, aArguments, callingTransaction);
     }
 
     public void setXid(int xid){
