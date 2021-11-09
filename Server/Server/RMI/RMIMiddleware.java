@@ -413,7 +413,7 @@ public class RMIMiddleware implements IResourceManager{
             if (RM_used != null){
 
                 for(IResourceManager RM:RM_used){
-                    timer.stop(id)
+                    timer.stop(id);
                     RM.abort(id);
                     timer.start(id);
                 }
