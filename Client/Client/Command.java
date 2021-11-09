@@ -28,6 +28,9 @@ public enum Command {
 	ReserveRoom("Reserve a room for a customer at a location", "<xid>,<CustomerID>,<Location>"),
 
 	Start("Get a new transaction xid", ""),
+	Commit("Commit a transaction", "<xid>"),
+	Abort("Abort a transaction", "<xid>"),
+	Shutdown("Shutdown all servers gracefully", ""),
 
 	Bundle("Book N flight numbers, and optionally a room and/or car at a location", "<xid>,<CustomerID>,<FlightNumber1>...<FlightNumberN>,<Location>,<Car-Y/N>,<Room-Y/N>"),
 

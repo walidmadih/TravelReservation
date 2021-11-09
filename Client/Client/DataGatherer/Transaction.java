@@ -12,6 +12,7 @@ import Client.Command;
 import Server.Interface.*;
 import Server.Interface.IResourceManager.InvalidTransactionException;
 import Server.Interface.IResourceManager.TransactionAbortedException;
+import Server.Interface.IResourceManager.TransactionAlreadyWaitingException;
 
 public class Transaction{
     private final LinkedList<Operation> aOperations;
@@ -37,7 +38,7 @@ public class Transaction{
         return aSize;
     }
 
-    private void executeAllOperations() throws RemoteException, InvalidTransactionException, TransactionAbortedException{
+    private void executeAllOperations() throws RemoteException, InvalidTransactionException, TransactionAbortedException, TransactionAlreadyWaitingException{
         for(Operation operation : aOperations){
             System.out.println(String.format("Executing:  %s ", operation.toString()));
             operation.executeOnClient(aClient);
@@ -53,7 +54,7 @@ public class Transaction{
         aClient.transactionLayerTimer.cleanUp(xid);
     }
 
-    public int start() throws RemoteException, InvalidTransactionException, TransactionAbortedException{
+    public int start() throws RemoteException, InvalidTransactionException, TransactionAbortedException, TransactionAlreadyWaitingException{
         xid = aClient.startTransaction();
         System.out.println(String.format("Retrieved XID: %d", xid));
         startTime = System.currentTimeMillis();

@@ -1,6 +1,9 @@
 package Server.LockManager;
 
 import Server.Common.*;
+import Server.LockManager.TransactionLockObject.LockType;
+import Server.Interface.IResourceManager.TransactionAbortedException;
+import Server.Interface.IResourceManager.TransactionAlreadyWaitingException;
 
 import java.util.BitSet;
 import java.util.Vector;
@@ -19,7 +22,7 @@ public class LockManager
 		super();
 	}
 
-	public boolean Lock(int xid, String data, TransactionLockObject.LockType lockType) throws DeadlockException
+	public boolean Lock(int xid, String data, TransactionLockObject.LockType lockType) throws DeadlockException, TransactionAlreadyWaitingException, TransactionAbortedException
 	{
 		// if any parameter is invalid, then return false
 		if (xid < 0) { 
@@ -63,8 +66,14 @@ public class LockManager
 						}
 
 						if (bConvert.get(0) == true) {
-							//TODO: Lock conversion 
-							// Trace.info("LM::lock(" + xid + ", " + data + ", " + lockType + ") converted");
+							
+							TransactionLockObject oldXLock = (TransactionLockObject) lockTable.get(new TransactionLockObject(xid, data, LockType.LOCK_READ));
+							DataLockObject oldDataLock = (DataLockObject) lockTable.get(new DataLockObject(xid, data, LockType.LOCK_READ));
+
+							oldXLock.setLockType(LockType.LOCK_WRITE);
+							oldDataLock.setLockType(LockType.LOCK_WRITE);
+
+							Trace.info("LM::lock(" + xid + ", " + data + ", " + lockType + ") converted");
 						} else {
 							// Lock request that is not lock conversion
 							this.lockTable.add(xLockObject);
@@ -199,8 +208,16 @@ public class LockManager
 	// lock), then this is ignored. This is done by throwing RedundantLockRequestException which is handled 
 	// appropriately by the caller. If the lock request is a conversion from READ lock to WRITE lock, then bitset 
 	// is set. 
-	private boolean LockConflict(DataLockObject dataLockObject, BitSet bitset) throws DeadlockException, RedundantLockRequestException
+	private boolean LockConflict(DataLockObject dataLockObject, BitSet bitset) throws DeadlockException, RedundantLockRequestException, TransactionAlreadyWaitingException
 	{
+		TransactionObject transObj = new TransactionObject(dataLockObject.getXId());
+
+		synchronized (this.waitTable)
+		{
+			if (this.waitTable.get(transObj) != null)
+				throw new TransactionAlreadyWaitingException();
+		}
+
 		Vector vect = this.lockTable.elements(dataLockObject);
 		int size = vect.size();
 
@@ -227,7 +244,11 @@ public class LockManager
 					// (2) transaction already had a WRITE lock
 					// Seeing the comments at the top of this function might be helpful
 
-					//TODO: Lock conversion
+					if (l_dataLockObject.getLockType() == TransactionLockObject.LockType.LOCK_READ)
+						bitset.set(0);
+
+					else
+						throw new RedundantLockRequestException(dataLockObject.getXId(), "redundant WRITE lock request");
 				}
 			} 
 			else if (dataLockObject.getLockType() == TransactionLockObject.LockType.LOCK_READ)
@@ -240,7 +261,7 @@ public class LockManager
 					return true;
 				}
 			}
-		       	else if (dataLockObject.getLockType() == TransactionLockObject.LockType.LOCK_WRITE)
+		    else if (dataLockObject.getLockType() == TransactionLockObject.LockType.LOCK_WRITE)
 			{
 				// Transaction is requesting a WRITE lock and some other transaction has either
 				// a READ or a WRITE lock on it ==> conflict
@@ -254,7 +275,7 @@ public class LockManager
 
 	}
 
-	private void WaitLock(DataLockObject dataLockObject) throws DeadlockException
+	private void WaitLock(DataLockObject dataLockObject) throws DeadlockException,TransactionAbortedException
 	{
 		Trace.info("LM::waitLock(" + dataLockObject.getXId() + ", " + dataLockObject.getDataName() + ", " + dataLockObject.getLockType() + ") called");
 
@@ -296,7 +317,7 @@ public class LockManager
 		// Suspend thread and wait until notified
 		synchronized (this.waitTable) {
 			if (!this.waitTable.contains(waitLockObject))
-		       	{
+		    {
 				// Register this transaction in the waitTable if it is not already there 
 				this.waitTable.add(waitLockObject);
 			}
@@ -316,9 +337,29 @@ public class LockManager
 				}
 			}
 			catch (InterruptedException e) {
-				System.out.println("Thread interrupted");
+				throw new TransactionAbortedException();
 			}
 		}
+	}
+
+	public void cleanupAbortedTransaction(int xid) 
+	{
+		Trace.info("LM::cleanupAbortedTransaction(" + xid + ") called");
+		TransactionObject transObj = new TransactionObject(xid);
+		synchronized (this.stampTable) {
+			synchronized (this.waitTable) {
+				this.stampTable.removeAll(transObj);
+				
+				Vector<TransactionObject> vect = this.waitTable.elements(transObj);
+				for (TransactionObject trans : vect)
+				{
+					//Kill all threads waiting for a lock and belonging to an aborted transaction
+					((WaitLockObject) trans).getThread().interrupt();
+				}
+				this.waitTable.removeAll(transObj);
+			}
+		}
+		Trace.info("LM::cleanupAbortedTransaction(" + xid + ") finished successfully");
 	}
 
 
