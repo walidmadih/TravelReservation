@@ -83,11 +83,11 @@ public class Transaction{
     }
 
     public void commit() throws RemoteException, InvalidTransactionException, TransactionAbortedException, TransactionAlreadyWaitingException{
-        OperationGenerator.generateCommitOperation().executeOnClient(aClient, this);
+        OperationGenerator.generateCommitOperation(xid).executeOnClient(aClient, this);
     }
 
     public void abort() throws RemoteException, InvalidTransactionException, TransactionAbortedException, TransactionAlreadyWaitingException{
-        OperationGenerator.generateAbortOperation().executeOnClient(aClient, this);
+        OperationGenerator.generateAbortOperation(xid).executeOnClient(aClient, this);
     }
 
 

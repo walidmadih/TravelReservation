@@ -101,17 +101,18 @@ public class OperationGenerator{
         return new Operation(cmd, arguments);
     }
 
-    public static Operation generateCommitOperation(){
+    public static Operation generateCommitOperation(int xid){
         Command cmd = Command.Commit;
         Vector<String> arguments = new Vector<String>();
+        arguments.add(String.valueOf(xid));
         arguments.add(cmd.name());
-
         return new Operation(cmd, arguments);
     }
 
-    public static Operation generateAbortOperation(){
+    public static Operation generateAbortOperation(int xid){
         Command cmd = Command.Abort;
         Vector<String> arguments = new Vector<String>();
+        arguments.add(String.valueOf(xid));
         arguments.add(cmd.name());
 
         return new Operation(cmd, arguments);
