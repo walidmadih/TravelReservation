@@ -21,7 +21,7 @@ public class ResourceManager implements IResourceManager
 	protected RMHashMap m_data = new RMHashMap();
 	private TransactionTimer timer = new TransactionTimer();
 	private LockManager lManager = new LockManager();
-	private HashMap<Integer, Vector<Snapshot>> abortInfo = Collections.synchronizedMap(new HashMap<Integer, Vector<Snapshot>>());
+	private HashMap<Integer, Vector<Snapshot>> abortInfo = new HashMap<Integer, Vector<Snapshot>>();
 	public ResourceManager(String p_name)
 	{
 		m_name = p_name;
@@ -696,20 +696,18 @@ public class ResourceManager implements IResourceManager
 
 	private void takeSnapshot(int xid, String key)
 	{
-		RMItem item = readData(xid, key);
-		if (abortInfo.containsKey(xid))
-		{
-			Vector<Snapshot> vect = abortInfo.get(xid);
-			Snapshot snap = new Snapshot(key, item);
-			if (!vect.contains(snap))
-				vect.add(snap);
-		}
-
-		else
-		{
-			Vector<Snapshot> vect = new Vector<Snapshot>();
-			vect.add(new Snapshot(key, item));
-			abortInfo.put(xid, vect);
+		synchronized (abortInfo) {
+			RMItem item = readData(xid, key);
+			if (abortInfo.containsKey(xid)) {
+				Vector<Snapshot> vect = abortInfo.get(xid);
+				Snapshot snap = new Snapshot(key, item);
+				if (!vect.contains(snap))
+					vect.add(snap);
+			} else {
+				Vector<Snapshot> vect = new Vector<Snapshot>();
+				vect.add(new Snapshot(key, item));
+				abortInfo.put(xid, vect);
+			}
 		}
 	}
 
@@ -720,13 +718,14 @@ public class ResourceManager implements IResourceManager
 
 	@Override
 	public boolean commit(int transactionId) throws RemoteException {
-		
-		//Release all locks taken by this transaction
-		lManager.UnlockAll(transactionId);
-		//Clean the snapshots taken before writing
-		abortInfo.remove(transactionId);
-		timer.commit(transactionId);
-		return true;
+		synchronized (abortInfo) {
+			//Release all locks taken by this transaction
+			lManager.UnlockAll(transactionId);
+			//Clean the snapshots taken before writing
+			abortInfo.remove(transactionId);
+			timer.commit(transactionId);
+			return true;
+		}
 	}
 
 	@Override
