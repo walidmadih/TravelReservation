@@ -86,8 +86,9 @@ public class Transaction{
         OperationGenerator.generateCommitOperation(xid).executeOnClient(aClient, this);
     }
 
-    public void abort() throws RemoteException, InvalidTransactionException, TransactionAbortedException, TransactionAlreadyWaitingException{
-        OperationGenerator.generateAbortOperation(xid).executeOnClient(aClient, this);
+    public void abort(Client aClient) throws RemoteException, InvalidTransactionException, TransactionAbortedException, TransactionAlreadyWaitingException{
+        aClient.timer.cleanUp(xid);
+        aClient.transactionLayerTimer.cleanUp(xid);
     }
 
 

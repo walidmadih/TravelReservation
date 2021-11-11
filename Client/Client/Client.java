@@ -553,7 +553,10 @@ public abstract class Client
 					double average = (count == 0 || time == 0) ? 0 : (double) time / (double) count;
 					output += String.format("%15s\t\t\t Transactions: %8d \t\t Total Time: %8d \t\t Average Response Time: %8.3f ms\n", layer.name(), count, time, average);
 				}
-				output += String.format("%15s\t\t\t%d Transactions/second\n", "THROUGHPUT", 1000 * totalCount.get(LayerTypes.TRANSACTION) / totalTime.get(LayerTypes.TRANSACTION));
+				int count = totalCount.get(LayerTypes.TRANSACTION);
+				int time = totalTime.get(LayerTypes.TRANSACTION);
+				int tranasction_per_millis = (count == 0 || time == 0) ? 0 : count / time;
+				output += String.format("%15s\t\t\t%d Transactions/second\n", "THROUGHPUT", 1000 * tranasction_per_millis);
 				out.println(output);
 				break;
 			}

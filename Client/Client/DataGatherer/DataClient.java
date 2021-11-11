@@ -44,14 +44,12 @@ public class DataClient extends RMIClient implements Runnable
                 // Deciding time before next transaction
                 
                 Transaction transaction = new Transaction(OperationGenerator.generateTimeDataTransaction(), this);
-                while(!transaction.isCommitted()){
-                    try{
-                        transaction.start();
-                    }catch(InvalidTransactionException e){
-                        transaction.abort();
-                    }catch(TransactionAbortedException e){
-                        transaction.abort();
-                    }
+                try{
+                    transaction.start();
+                }catch(InvalidTransactionException e){
+                    transaction.abort(this);
+                }catch(TransactionAbortedException e){
+                    transaction.abort(this);
                 }
                 System.out.println(String.format("Transaction XID: %d\t\tOperation Count: %d\t\tTransaction Time: %d\t\tCOMPLETED", transaction.getXid(), transaction.getTotalCount(), transaction.getTransactionTime()));
                 
