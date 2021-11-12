@@ -28,11 +28,10 @@ public abstract class Client
 	protected ArrayList<TestClient> clients;
 	private PrintStream out;
 
-	private int totalCount = 0;
-	private int totalTime = 0;
-
 	private EnumMap<LayerTypes, Integer> runningTotalCount = new EnumMap<LayerTypes, Integer>(LayerTypes.class);
+	private EnumMap<LayerTypes, Integer> runningAbortedCount = new EnumMap<LayerTypes, Integer>(LayerTypes.class);
 	private EnumMap<LayerTypes, Integer> runningTotalTime = new EnumMap<LayerTypes, Integer>(LayerTypes.class);
+	
 
 	public long startTime;
 
@@ -44,6 +43,11 @@ public abstract class Client
 	public Client()
 	{
 		super();
+		for(LayerTypes layer: LayerTypes.values()){
+			runningTotalCount.put(layer, 0);
+			runningAbortedCount.put(layer, 0);
+			runningTotalTime.put(layer, 0);
+		}
 	}
 
 	public abstract void connectServer();
@@ -560,12 +564,33 @@ public abstract class Client
 					int time = totalTime.get(layer);;
 					int count = totalCount.get(layer);
 					double average = (count == 0 || time == 0) ? 0 : (double) time / (double) count;
-					output += String.format("%15s\t\t\t Transactions: %8d \t\t Total Time: %8d \t\t Average Response Time: %8.3f ms\n", layer.name(), count, time, average);
+					output += String.format("%15s\t\t\t Transactions: %8d \t\t Time: %8d \t\t Response Time: %8.3f ms\n", layer.name(), count, time, average);
 				}
 				int count = totalCount.get(LayerTypes.TRANSACTION);
 				int time = totalTime.get(LayerTypes.TRANSACTION);
 
-				output += String.format("%15s\t\t\t%d Transactions/second\n", "THROUGHPUT", totalCount.get(LayerTypes.CLIENT));
+				
+				output += String.format("%15s\t\t\t%d Transactions/second\n\n", "THROUGHPUT", totalCount.get(LayerTypes.TRANSACTION));
+				
+
+
+
+
+
+				for(LayerTypes layer : totalTime.keySet()){
+					runningTotalCount.put(layer, runningTotalCount.get(layer) + totalCount.get(layer));
+					runningTotalTime.put(layer, runningTotalTime.get(layer) + totalTime.get(layer));
+					
+					time = runningTotalTime.get(layer);;
+					count = runningTotalCount.get(layer);
+					double average = (count == 0 || time == 0) ? 0 : (double) time / (double) count;
+
+					output += String.format("%15s\t\t\t Transactions: %8d \t\t Total Time: %8d \t\t Average Response Time: %8.3f ms\n", layer.name(), count, time, average);
+				}
+
+				double timeSpan = (double) (System.currentTimeMillis() - startTime);
+				output += String.format("%15s\t\t\t%.2f Average Transactions/second\n\n\n\n\n\n", "THROUGHPUT", 1000.0 * ((double) runningTotalCount.get(LayerTypes.TRANSACTION)) / timeSpan);
+
 				out.println(output);
 				break;
 			}
