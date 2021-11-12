@@ -181,7 +181,6 @@ public class ResourceManager implements IResourceManager
 			}
 		}
 		catch(DeadlockException deadlock){
-			timer.stop(xid);
 			throw new TransactionAbortedException();
 		}
 	}
@@ -730,7 +729,7 @@ public class ResourceManager implements IResourceManager
 
 	@Override
 	public void abort(int transactionId) throws RemoteException {
-		
+		timer.cleanUp(transactionId);
 		Trace.info("RM::abort(" + transactionId + ") called");
 
 		Vector<Snapshot> vect = abortInfo.get(transactionId);

@@ -35,6 +35,9 @@ public class TransactionTimer{
 
     public void stop(int xid){
         synchronized(lock){
+            if(!aActiveTimers.containsKey(xid)){
+                return;
+            }
             long startTime = aActiveTimers.get(xid);
             aActiveTimers.remove(xid);
             long endTime = System.currentTimeMillis();

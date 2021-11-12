@@ -11,6 +11,7 @@ import Server.Common.Customer;
 import Server.Common.RMHashMap;
 import Server.LockManager.DeadlockException;
 import Server.LockManager.LockManager;
+import Server.LockManager.TransactionObject;
 import Server.LockManager.TransactionLockObject.LockType;
 
 import java.rmi.AccessException;
@@ -43,7 +44,7 @@ public class RMIMiddleware implements IResourceManager{
     private HashMap<Integer,Long> time_to_live = new HashMap();
     private HashSet<Integer> transactionsToNotify = new HashSet();
     private final Object lock = new Object();
-    private long TTL = 60000;
+    private long TTL = 1000;
     public static void main(String args[]){
         String host1 = args[0];
         String host2 = args[1];
@@ -157,23 +158,7 @@ public class RMIMiddleware implements IResourceManager{
             return manager_Flights.addFlight(id, flightNum, flightSeats, flightPrice);
         }
         catch(TransactionAbortedException e){
-            timer.start(id);
-            List<IResourceManager> RM_used = trans_active.get(id);
-
-            if (RM_used != null){
-
-                for(IResourceManager RM:RM_used){
-                    timer.stop(id);
-                    RM.abort(id);
-                    timer.start(id);
-                }
-                synchronized (lock) {
-                    trans_active.remove(id);
-                    time_to_live.remove(id);
-                }
-            }
-            timer.stop(id);
-            throw e;
+            throw handleTransactionAbort(id);
         }
     }
 
@@ -196,23 +181,7 @@ public class RMIMiddleware implements IResourceManager{
             return manager_Cars.addCars(id, location, numCars, price);
         }
         catch(TransactionAbortedException e){
-            timer.start(id);
-            List<IResourceManager> RM_used = trans_active.get(id);
-
-            if (RM_used != null){
-
-                for(IResourceManager RM:RM_used){
-                    timer.stop(id);
-                    RM.abort(id);
-                    timer.start(id);
-                }
-                synchronized (lock) {
-                    trans_active.remove(id);
-                    time_to_live.remove(id);
-                }
-            }
-            timer.stop(id);
-            throw e;
+            throw handleTransactionAbort(id);
         }
     }
 
@@ -235,23 +204,7 @@ public class RMIMiddleware implements IResourceManager{
             return manager_Rooms.addRooms(id, location, numRooms, price);
         }
         catch(TransactionAbortedException e){
-            timer.start(id);
-            List<IResourceManager> RM_used = trans_active.get(id);
-
-            if (RM_used != null){
-
-                for(IResourceManager RM:RM_used){
-                    timer.stop(id);
-                    RM.abort(id);
-                    timer.start(id);
-                }
-                synchronized (lock) {
-                    trans_active.remove(id);
-                    time_to_live.remove(id);
-                }
-            }
-            timer.stop(id);
-            throw e;
+            throw handleTransactionAbort(id);
         }
     }
 
@@ -284,23 +237,7 @@ public class RMIMiddleware implements IResourceManager{
             return cid;
         }
         catch(TransactionAbortedException e){
-            timer.start(id);
-            List<IResourceManager> RM_used = trans_active.get(id);
-
-            if (RM_used != null){
-
-                for(IResourceManager RM:RM_used){
-                    timer.stop(id);
-                    RM.abort(id);
-                    timer.start(id);
-                }
-                synchronized (lock) {
-                    trans_active.remove(id);
-                    time_to_live.remove(id);
-                }
-            }
-            timer.stop(id);
-            throw e;
+            throw handleTransactionAbort(id);
         }
     }
 
@@ -329,23 +266,7 @@ public class RMIMiddleware implements IResourceManager{
                 manager_Cars.newCustomer(id, cid);
         }
         catch(TransactionAbortedException e){
-            timer.start(id);
-            List<IResourceManager> RM_used = trans_active.get(id);
-
-            if (RM_used != null){
-
-                for(IResourceManager RM:RM_used){
-                    timer.stop(id);
-                    RM.abort(id);
-                    timer.start(id);
-                }
-                synchronized (lock) {
-                    trans_active.remove(id);
-                    time_to_live.remove(id);
-                }
-            }
-            timer.stop(id);
-            throw e;
+            throw handleTransactionAbort(id);
         }
     }
 
@@ -368,23 +289,7 @@ public class RMIMiddleware implements IResourceManager{
             return manager_Flights.deleteFlight(id, flightNum);
         }
         catch(TransactionAbortedException e){
-            timer.start(id);
-            List<IResourceManager> RM_used = trans_active.get(id);
-
-            if (RM_used != null){
-
-                for(IResourceManager RM:RM_used){
-                    timer.stop(id);
-                    RM.abort(id);
-                    timer.start(id);
-                }
-                synchronized (lock) {
-                    trans_active.remove(id);
-                    time_to_live.remove(id);
-                }
-            }
-            timer.stop(id);
-            throw e;
+            throw handleTransactionAbort(id);
         }
     }
 
@@ -407,23 +312,7 @@ public class RMIMiddleware implements IResourceManager{
             return manager_Cars.deleteCars(id, location);
         }
         catch(TransactionAbortedException e){
-            timer.start(id);
-            List<IResourceManager> RM_used = trans_active.get(id);
-
-            if (RM_used != null){
-
-                for(IResourceManager RM:RM_used){
-                    timer.stop(id);
-                    RM.abort(id);
-                    timer.start(id);
-                }
-                synchronized (lock) {
-                    trans_active.remove(id);
-                    time_to_live.remove(id);
-                }
-            }
-            timer.stop(id);
-            throw e;
+            throw handleTransactionAbort(id);
         }
     }
 
@@ -446,23 +335,7 @@ public class RMIMiddleware implements IResourceManager{
             return manager_Rooms.deleteRooms(id, location);
         }
         catch(TransactionAbortedException e){
-            timer.start(id);
-            List<IResourceManager> RM_used = trans_active.get(id);
-
-            if (RM_used != null){
-
-                for(IResourceManager RM:RM_used){
-                    timer.stop(id);
-                    RM.abort(id);
-                    timer.start(id);
-                }
-                synchronized (lock) {
-                    trans_active.remove(id);
-                    time_to_live.remove(id);
-                }
-            }
-            timer.stop(id);
-            throw e;
+            throw handleTransactionAbort(id);
         }
     }
 
@@ -491,23 +364,7 @@ public class RMIMiddleware implements IResourceManager{
                 manager_Rooms.deleteCustomer(id, customerID);
         }
         catch(TransactionAbortedException e){
-            timer.start(id);
-            List<IResourceManager> RM_used = trans_active.get(id);
-
-            if (RM_used != null){
-
-                for(IResourceManager RM:RM_used){
-                    timer.stop(id);
-                    RM.abort(id);
-                    timer.start(id);
-                }
-                synchronized (lock) {
-                    trans_active.remove(id);
-                    time_to_live.remove(id);
-                }
-            }
-            timer.stop(id);
-            throw e;
+            throw handleTransactionAbort(id);
         }
     }
 
@@ -530,23 +387,7 @@ public class RMIMiddleware implements IResourceManager{
             return manager_Flights.queryFlight(id, flightNumber);
         }
         catch(TransactionAbortedException e){
-            timer.start(id);
-            List<IResourceManager> RM_used = trans_active.get(id);
-
-            if (RM_used != null){
-
-                for(IResourceManager RM:RM_used){
-                    timer.stop(id);
-                    RM.abort(id);
-                    timer.start(id);
-                }
-                synchronized (lock) {
-                    trans_active.remove(id);
-                    time_to_live.remove(id);
-                }
-            }
-            timer.stop(id);
-            throw e;
+            throw handleTransactionAbort(id);
         }
     }
 
@@ -575,23 +416,7 @@ public class RMIMiddleware implements IResourceManager{
             return manager_Cars.queryCars(id, location);
         }
         catch(TransactionAbortedException e){
-            timer.start(id);
-            List<IResourceManager> RM_used = trans_active.get(id);
-
-            if (RM_used != null){
-
-                for(IResourceManager RM:RM_used){
-                    timer.stop(id);
-                    RM.abort(id);
-                    timer.start(id);
-                }
-                synchronized (lock) {
-                    trans_active.remove(id);
-                    time_to_live.remove(id);
-                }
-            }
-            timer.stop(id);
-            throw e;
+            throw handleTransactionAbort(id);
         }
     }
 
@@ -619,23 +444,7 @@ public class RMIMiddleware implements IResourceManager{
             return manager_Rooms.queryRooms(id, location);
         }
         catch(TransactionAbortedException e){
-            timer.start(id);
-            List<IResourceManager> RM_used = trans_active.get(id);
-
-            if (RM_used != null){
-
-                for(IResourceManager RM:RM_used){
-                    timer.stop(id);
-                    RM.abort(id);
-                    timer.start(id);
-                }
-                synchronized (lock) {
-                    trans_active.remove(id);
-                    time_to_live.remove(id);
-                }
-            }
-            timer.stop(id);
-            throw e;
+            throw handleTransactionAbort(id);
         }
     }
 
@@ -680,23 +489,7 @@ public class RMIMiddleware implements IResourceManager{
             return bill;
         }
         catch(TransactionAbortedException e){
-            timer.start(id);
-            List<IResourceManager> RM_used = trans_active.get(id);
-
-            if (RM_used != null){
-
-                for(IResourceManager RM:RM_used){
-                    timer.stop(id);
-                    RM.abort(id);
-                    timer.start(id);
-                }
-                synchronized (lock) {
-                    trans_active.remove(id);
-                    time_to_live.remove(id);
-                }
-            }
-            timer.stop(id);
-            throw e;
+            throw handleTransactionAbort(id);
         }
     }
 
@@ -733,23 +526,7 @@ public class RMIMiddleware implements IResourceManager{
             return manager_Flights.queryFlightPrice(id, flightNumber);
         }
         catch(TransactionAbortedException e){
-            timer.start(id);
-            List<IResourceManager> RM_used = trans_active.get(id);
-
-            if (RM_used != null){
-
-                for(IResourceManager RM:RM_used){
-                    timer.stop(id);
-                    RM.abort(id);
-                    timer.start(id);
-                }
-                synchronized (lock) {
-                    trans_active.remove(id);
-                    time_to_live.remove(id);
-                }
-            }
-            timer.stop(id);
-            throw e;
+            throw handleTransactionAbort(id);
         }
     }
 
@@ -778,23 +555,7 @@ public class RMIMiddleware implements IResourceManager{
             return manager_Cars.queryCarsPrice(id, location);
         }
         catch(TransactionAbortedException e){
-            timer.start(id);
-            List<IResourceManager> RM_used = trans_active.get(id);
-
-            if (RM_used != null){
-
-                for(IResourceManager RM:RM_used){
-                    timer.stop(id);
-                    RM.abort(id);
-                    timer.start(id);
-                }
-                synchronized (lock) {
-                    trans_active.remove(id);
-                    time_to_live.remove(id);
-                }
-            }
-            timer.stop(id);
-            throw e;
+            throw handleTransactionAbort(id);
         }
     }
 
@@ -822,23 +583,7 @@ public class RMIMiddleware implements IResourceManager{
             return manager_Rooms.queryRoomsPrice(id, location);
         }
         catch(TransactionAbortedException e){
-            timer.start(id);
-            List<IResourceManager> RM_used = trans_active.get(id);
-
-            if (RM_used != null){
-
-                for(IResourceManager RM:RM_used){
-                    timer.stop(id);
-                    RM.abort(id);
-                    timer.start(id);
-                }
-                synchronized (lock) {
-                    trans_active.remove(id);
-                    time_to_live.remove(id);
-                }
-            }
-            timer.stop(id);
-            throw e;
+            throw handleTransactionAbort(id);
         }
     }
 
@@ -870,23 +615,7 @@ public class RMIMiddleware implements IResourceManager{
             return manager_Flights.reserveFlight(id, customerID, flightNumber);
         }
         catch(TransactionAbortedException e){
-            timer.start(id);
-            List<IResourceManager> RM_used = trans_active.get(id);
-
-            if (RM_used != null){
-
-                for(IResourceManager RM:RM_used){
-                    timer.stop(id);
-                    RM.abort(id);
-                    timer.start(id);
-                }
-                synchronized (lock) {
-                    trans_active.remove(id);
-                    time_to_live.remove(id);
-                }
-            }
-            timer.stop(id);
-            throw e;
+            throw handleTransactionAbort(id);
         }
     }
 
@@ -919,25 +648,10 @@ public class RMIMiddleware implements IResourceManager{
             return manager_Cars.reserveCar(id, customerID, location);
         }
         catch(TransactionAbortedException e){
-            timer.start(id);
-            List<IResourceManager> RM_used = trans_active.get(id);
-
-            if (RM_used != null){
-
-                for(IResourceManager RM:RM_used){
-                    timer.stop(id);
-                    RM.abort(id);
-                    timer.start(id);
-                }
-                synchronized (lock) {
-                    trans_active.remove(id);
-                    time_to_live.remove(id);
-                }
-            }
-            timer.stop(id);
-            throw e;
+            throw handleTransactionAbort(id);
         }
     }
+
 
     /**
      * Reserve a room at this location.
@@ -967,23 +681,7 @@ public class RMIMiddleware implements IResourceManager{
             return manager_Rooms.reserveRoom(id, customerID, location);
         }
         catch(TransactionAbortedException e){
-            timer.start(id);
-            List<IResourceManager> RM_used = trans_active.get(id);
-
-            if (RM_used != null){
-
-                for(IResourceManager RM:RM_used){
-                    timer.stop(id);
-                    RM.abort(id);
-                    timer.start(id);
-                }
-                synchronized (lock) {
-                    trans_active.remove(id);
-                    time_to_live.remove(id);
-                }
-            }
-            timer.stop(id);
-            throw e;
+            throw handleTransactionAbort(id);
         }
     }
 
@@ -1040,25 +738,27 @@ public class RMIMiddleware implements IResourceManager{
             return somethingReserved;
         }
         catch(TransactionAbortedException e){
-            timer.start(id);
-            List<IResourceManager> RM_used = trans_active.get(id);
-
-            if (RM_used != null){
-
-                for(IResourceManager RM:RM_used){
-                    timer.stop(id);
-                    RM.abort(id);
-                    timer.start(id);
-                }
-                synchronized (lock) {
-                    trans_active.remove(id);
-                    time_to_live.remove(id);
-                }
-            }
-            timer.stop(id);
-            throw e;
+            throw handleTransactionAbort(id);
         }
     }
+
+    public TransactionAbortedException handleTransactionAbort(int id) throws RemoteException, InvalidTransactionException, TransactionAbortedException{
+        timer.cleanUp(id);
+        List<IResourceManager> RM_used = trans_active.get(id);
+
+        if (RM_used != null){
+
+            for(IResourceManager RM:RM_used){
+                RM.abort(id);
+            }
+            synchronized (lock) {
+                trans_active.remove(id);
+                time_to_live.remove(id);
+            }
+        }
+        return new TransactionAbortedException();
+    }
+
     /**
      * Convenience for probing the resource manager.
      *
@@ -1179,6 +879,7 @@ public class RMIMiddleware implements IResourceManager{
 
     @Override
     public void abort(int transactionId) throws RemoteException, InvalidTransactionException {
+        timer.cleanUp(transactionId);
         synchronized (lock) {
 
             List<IResourceManager> RM_used = trans_active.get(transactionId);
