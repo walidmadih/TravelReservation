@@ -20,6 +20,7 @@ public class ResourceManager implements IResourceManager
 	protected String m_name = "";
 	protected RMHashMap m_data = new RMHashMap();
 	private TransactionTimer timer = new TransactionTimer();
+	private TransactionTimer dbTimer = new TransactionTimer();
 	private LockManager lManager = new LockManager();
 	private HashMap<Integer, Vector<Snapshot>> abortInfo = new HashMap<Integer, Vector<Snapshot>>();
 	public ResourceManager(String p_name)
@@ -759,7 +760,8 @@ public class ResourceManager implements IResourceManager
 
 	@Override
 	public Vector<DataPoint> queryTransactionResponseTime(int id, Vector<DataPoint> dataPoints) throws RemoteException {
-		dataPoints.add(timer.getDataPoint(LayerTypes.DATABASE));
+		dataPoints.add(timer.getDataPoint(LayerTypes.RESOURCEMANAGER));
+		dataPoints.add(dbTimer.getDataPoint(LayerTypes.DATABASE));
 		return dataPoints;
 	}
 }
