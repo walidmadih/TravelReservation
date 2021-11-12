@@ -9,7 +9,7 @@ import Server.Interface.IResourceManager;
 
 public class OperationGenerator{
 
-    private static int maxOperationsCount = 10;
+    private static int operationsCount = 4;
 
     private static int maxAdd = 10;
     private static int maxFlightNum = 10;
@@ -25,7 +25,7 @@ public class OperationGenerator{
     }
 
     private enum TransactionTypes{
-        ADD, DELETE, QUERY, QUERYPRICE, RESERVE
+        ADD, QUERY, QUERYPRICE, //RESERVE, DELETE
     }
 
     public static Operation generateRandomOperation(){
@@ -33,9 +33,10 @@ public class OperationGenerator{
         TransactionTypes transactionType = TransactionTypes.values()[(int)(Math.random()*TransactionTypes.values().length)];
 
         String commandName = transactionType == TransactionTypes.QUERYPRICE ? TransactionTypes.QUERY.name() + resource.name() + "Price" : transactionType.name() + resource.name();
+        /*
         if(transactionType == TransactionTypes.RESERVE && (resource == Resources.ROOMS || resource == Resources.CARS)){
             commandName = commandName.substring(0, commandName.length() - 1);
-        }
+        }*/
         Command operationCommand = Command.fromString(commandName);
 
         Vector<String> arguments = new Vector<String>();
@@ -54,10 +55,11 @@ public class OperationGenerator{
                 arguments.add(price);
                 break;
             }
+            /*
             case DELETE: {
                 arguments.add(flightnum_location);
                 break;
-            }
+            }*/
             case QUERY: {
                 arguments.add(flightnum_location);
                 break;
@@ -66,10 +68,11 @@ public class OperationGenerator{
                 arguments.add(flightnum_location);
                 break;
             }
+            /*
             case RESERVE: {
                 arguments.add(customerId);
                 arguments.add(flightnum_location);
-            }
+            }*/
         }
 
         return new Operation(operationCommand, arguments);
@@ -77,7 +80,6 @@ public class OperationGenerator{
 
     public static LinkedList<Operation> generateRandomOperations(){
         LinkedList<Operation> operations = new LinkedList<>();
-        int operationsCount = (int) (Math.random()*(maxOperationsCount - 1) + 1);
         for(int i = 0; i < operationsCount; i++){
             operations.add(generateRandomOperation());
         }

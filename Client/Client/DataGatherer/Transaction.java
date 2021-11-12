@@ -72,6 +72,7 @@ public class Transaction{
 
     public void start() throws RemoteException, InvalidTransactionException, TransactionAbortedException, TransactionAlreadyWaitingException{
         OperationGenerator.generateStartOperation().executeOnClient(aClient, this);
+        aClient.transactionLayerTimer.start(xid);
         System.out.println(String.format("Retrieved XID: %d", xid));
         startTime = System.currentTimeMillis();
         endTime = startTime;
@@ -79,6 +80,7 @@ public class Transaction{
             operation.setXid(xid);
         }
         executeAllOperations();
+        commit();
         endTime = System.currentTimeMillis();
     }
 

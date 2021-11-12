@@ -28,6 +28,12 @@ public abstract class Client
 	protected ArrayList<TestClient> clients;
 	private PrintStream out;
 
+	private int totalCommitted = 0;
+	private int totalTime = 0;
+
+	public long startTime;
+
+
 	public void setOut(PrintStream ps){
 		out = ps;
 	}
@@ -555,8 +561,8 @@ public abstract class Client
 				}
 				int count = totalCount.get(LayerTypes.TRANSACTION);
 				int time = totalTime.get(LayerTypes.TRANSACTION);
-				int tranasction_per_millis = (count == 0 || time == 0) ? 0 : count / time;
-				output += String.format("%15s\t\t\t%d Transactions/second\n", "THROUGHPUT", 1000 * tranasction_per_millis);
+
+				output += String.format("%15s\t\t\t%d Transactions/second\n", "THROUGHPUT", totalCount.get(LayerTypes.CLIENT));
 				out.println(output);
 				break;
 			}

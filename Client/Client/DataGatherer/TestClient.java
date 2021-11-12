@@ -27,7 +27,6 @@ public class TestClient extends RMIClient implements Runnable
     // transactionTime belongs to [aTransactionInterval - aTransactionIntervalVariation, aTransactionInterval + aTransactionIntervalVariation]
     private int aTransactionIntervalVariation = 200;
 
-    private Transaction transaction;
     private boolean randomTransactions = false;
 
     public TestClient(String pHost, int pPort, String pServerName, String pGroupName){
@@ -45,10 +44,6 @@ public class TestClient extends RMIClient implements Runnable
         aTransactionIntervalVariation = pTransactionIntervalVariation;
     }
 
-    public void setTransaction(Transaction transaction){
-        this.transaction = transaction;
-    }
-
     @Override
     public void run() {
 
@@ -64,16 +59,17 @@ public class TestClient extends RMIClient implements Runnable
             System.out.println(String.format("New client connected to %s %d %s %s will be making a transaction every %d milliseconds with a variation of %d",
                 aHost, aPort, aServerName, aGroupName, aTransactionInterval, aTransactionIntervalVariation));
 
+
+            Random rand = new Random();
+            startTime = System.currentTimeMillis();
+            
             while(true){
                 //Deciding time before next transaction
                 int upper = aTransactionInterval + aTransactionIntervalVariation;
                 int lower = aTransactionInterval - aTransactionIntervalVariation;
-                int targetTime = (int) (Math.random() * (upper - lower)) + lower;;
+                int targetTime = rand.nextInt(upper) + lower;
 
-                if(randomTransactions || transaction == null)
-                {
-                    transaction = new Transaction(OperationGenerator.generateRandomOperations(), this);
-                }
+                Transaction transaction = new Transaction(OperationGenerator.generateRandomOperations(), this);
                 try{
                     transaction.start();
                 }catch(InvalidTransactionException e){

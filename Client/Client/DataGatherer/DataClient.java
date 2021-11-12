@@ -38,7 +38,9 @@ public class DataClient extends RMIClient implements Runnable
 
 		// Get a reference to the RMIRegister
 		try {
+
             connectServer(aHost, aPort, aServerName, aGroupName);
+            startTime = System.currentTimeMillis();
 
             while(true){
                 // Deciding time before next transaction
