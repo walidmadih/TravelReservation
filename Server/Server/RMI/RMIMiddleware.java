@@ -44,7 +44,7 @@ public class RMIMiddleware implements IResourceManager{
     private HashMap<Integer,Long> time_to_live = new HashMap();
     private HashSet<Integer> transactionsToNotify = new HashSet();
     private final Object lock = new Object();
-    private long TTL = 10;
+    private long TTL = 60000;
     public static void main(String args[]){
         String host1 = args[0];
         String host2 = args[1];
