@@ -28,8 +28,11 @@ public abstract class Client
 	protected ArrayList<TestClient> clients;
 	private PrintStream out;
 
-	private int totalCommitted = 0;
+	private int totalCount = 0;
 	private int totalTime = 0;
+
+	private EnumMap<LayerTypes, Integer> runningTotalCount = new EnumMap<LayerTypes, Integer>(LayerTypes.class);
+	private EnumMap<LayerTypes, Integer> runningTotalTime = new EnumMap<LayerTypes, Integer>(LayerTypes.class);
 
 	public long startTime;
 
