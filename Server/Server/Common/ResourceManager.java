@@ -31,11 +31,17 @@ public class ResourceManager implements IResourceManager
 	// Reads a data item
 	protected RMItem readData(int xid, String key)
 	{
+		timer.stop(xid);
+		dbTimer.start(xid);
 		synchronized(m_data) {
 			RMItem item = m_data.get(key);
 			if (item != null) {
+				dbTimer.stop(xid);
+				timer.start(xid);
 				return (RMItem)item.clone();
 			}
+			dbTimer.stop(xid);
+			timer.start(xid);
 			return null;
 		}
 	}
@@ -43,17 +49,25 @@ public class ResourceManager implements IResourceManager
 	// Writes a data item
 	protected void writeData(int xid, String key, RMItem value)
 	{
+		timer.stop(xid);
+		dbTimer.start(xid);
 		synchronized(m_data) {
 			m_data.put(key, value);
 		}
+		dbTimer.stop(xid);
+		timer.start(xid);
 	}
 
 	// Remove the item out of storage
 	protected void removeData(int xid, String key)
 	{
+		timer.stop(xid);
+		dbTimer.start(xid);
 		synchronized(m_data) {
 			m_data.remove(key);
 		}
+		dbTimer.stop(xid);
+		timer.start(xid);
 	}
 
 	// Deletes the encar item
@@ -724,6 +738,7 @@ public class ResourceManager implements IResourceManager
 			//Clean the snapshots taken before writing
 			abortInfo.remove(transactionId);
 			timer.commit(transactionId);
+			dbTimer.commit(transactionId);
 			return true;
 		}
 	}
@@ -731,6 +746,7 @@ public class ResourceManager implements IResourceManager
 	@Override
 	public void abort(int transactionId) throws RemoteException {
 		timer.cleanUp(transactionId);
+		dbTimer.cleanUp(transactionId);
 		Trace.info("RM::abort(" + transactionId + ") called");
 
 		Vector<Snapshot> vect = abortInfo.get(transactionId);

@@ -27,7 +27,7 @@ public class TransactionTimer{
         }
     }
 
-    public void start(int xid) throws RemoteException{
+    public void start(int xid){
         synchronized(lock){
             aActiveTimers.put(xid, System.currentTimeMillis());
         }
