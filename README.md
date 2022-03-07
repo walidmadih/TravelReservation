@@ -1,6 +1,6 @@
 # Travel Reservation
 
-A distributed system which implements transaction, locks, etc... to handle a travel reservation system.
+A distributed system which uses transaction, locks, etc... to handle a travel reservation system.
 
 To run the RMI resource manager:
 
